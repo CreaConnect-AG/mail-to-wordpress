@@ -1,0 +1,11 @@
+{
+  "name": "mail-to-wordpress",
+  "version": "1.0.0",
+  "main": "src/functions/*.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.7.2"
+  }
+}
