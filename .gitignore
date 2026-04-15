@@ -3,3 +3,4 @@ local.settings.json
 .vscode/
 dist/
 *.log
+test-data/
