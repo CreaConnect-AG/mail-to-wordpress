@@ -25,7 +25,7 @@ const {
 
 app.http('processMailToWordPress', {
     methods: ['GET', 'POST'],
-    authLevel: 'anonymous',
+    authLevel: 'function',
     route: 'process-mail-to-wordpress',
     handler: async (request, context) => {
         const requestMethod = String(request.method || 'GET').toUpperCase();
