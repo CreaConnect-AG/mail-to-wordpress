@@ -7,10 +7,20 @@ const {
     wordpressAcfLeadFieldName
 } = require('../config/environment');
 
+const {
+    normalizeWhitespace,
+    sanitizeSlug
+} = require('../utils/textUtils');
+
 async function createWordPressDraft(rewrittenPost) {
     const authorizationHeader = Buffer
         .from(`${wordpressUsername}:${wordpressApplicationPassword}`)
         .toString('base64');
+
+    const assignedTagIds = await ensureWordPressTagIds(
+        rewrittenPost.tag_names || [],
+        authorizationHeader
+    );
 
     const wordpressPayload = {
         status: wordpressDefaultStatus,
@@ -23,8 +33,14 @@ async function createWordPressDraft(rewrittenPost) {
         wordpressPayload.slug = rewrittenPost.slug;
     }
 
-    if (wordpressDefaultCategoryIds.length > 0) {
+    if (Array.isArray(rewrittenPost.category_ids) && rewrittenPost.category_ids.length > 0) {
+        wordpressPayload.categories = rewrittenPost.category_ids;
+    } else if (wordpressDefaultCategoryIds.length > 0) {
         wordpressPayload.categories = wordpressDefaultCategoryIds;
+    }
+
+    if (assignedTagIds.length > 0) {
+        wordpressPayload.tags = assignedTagIds;
     }
 
     const createResponse = await fetch(`${wordpressBaseUrl}/wp-json/wp/v2/posts`, {
@@ -56,7 +72,94 @@ async function createWordPressDraft(rewrittenPost) {
         }
     }
 
-    return createdPost;
+    return {
+        ...createdPost,
+        assigned_tag_ids: assignedTagIds
+    };
+}
+
+async function ensureWordPressTagIds(tagNames, authorizationHeader) {
+    const tagIds = [];
+
+    for (const tagName of tagNames) {
+        const tagId = await ensureWordPressTagId(tagName, authorizationHeader);
+        tagIds.push(tagId);
+    }
+
+    return tagIds;
+}
+
+async function ensureWordPressTagId(tagName, authorizationHeader) {
+    const normalizedTagName = normalizeWhitespace(String(tagName || ''));
+    if (!normalizedTagName) {
+        throw new Error('Ungültiger Tag-Name.');
+    }
+
+    const tagSlug = sanitizeSlug(normalizedTagName);
+    if (!tagSlug) {
+        throw new Error(`Ungültiger Tag-Slug für Stichwort "${normalizedTagName}".`);
+    }
+
+    const existingTag = await findWordPressTagBySlug({
+        tagSlug,
+        authorizationHeader
+    });
+
+    if (existingTag) {
+        return existingTag.id;
+    }
+
+    const createResponse = await fetch(`${wordpressBaseUrl}/wp-json/wp/v2/tags`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${authorizationHeader}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            name: normalizedTagName,
+            slug: tagSlug
+        })
+    });
+
+    if (createResponse.ok) {
+        const createdTag = await createResponse.json();
+        return createdTag.id;
+    }
+
+    await createResponse.text();
+
+    const existingTagAfterCreateAttempt = await findWordPressTagBySlug({
+        tagSlug,
+        authorizationHeader
+    });
+
+    if (existingTagAfterCreateAttempt) {
+        return existingTagAfterCreateAttempt.id;
+    }
+
+    throw new Error(`WordPress-Stichwort "${normalizedTagName}" konnte nicht erstellt oder gefunden werden.`);
+}
+
+async function findWordPressTagBySlug({ tagSlug, authorizationHeader }) {
+    const response = await fetch(`${wordpressBaseUrl}/wp-json/wp/v2/tags?slug=${encodeURIComponent(tagSlug)}&per_page=100`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Basic ${authorizationHeader}`
+        }
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`WordPress Fehler beim Lesen von Stichwörtern ${response.status}: ${errorText}`);
+    }
+
+    const tagResults = await response.json();
+
+    if (!Array.isArray(tagResults) || tagResults.length === 0) {
+        return null;
+    }
+
+    return tagResults[0];
 }
 
 async function updateWordPressAcfField({ postId, fieldName, fieldValue, authorizationHeader }) {

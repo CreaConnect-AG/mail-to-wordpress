@@ -83,7 +83,12 @@ app.http('processMailToWordPress', {
                         wordpress_link: createdWordPressPost.link || null,
                         wordpress_title: createdWordPressPost.title?.rendered || rewrittenPost.title,
                         lead_value: rewrittenPost.lead,
-                        strict_rules_used: shouldUseStrictLengthRules(sourceText)
+                        strict_rules_used: shouldUseStrictLengthRules(sourceText),
+                        assigned_category_ids: rewrittenPost.category_ids || [],
+                        assigned_category_titles: rewrittenPost.selected_category_titles || [],
+                        assigned_tag_ids: createdWordPressPost.assigned_tag_ids || [],
+                        assigned_tag_names: rewrittenPost.tag_names || [],
+                        assigned_thematic_keyword_names: rewrittenPost.thematic_keyword_names || []
                     }
                 }
             };
