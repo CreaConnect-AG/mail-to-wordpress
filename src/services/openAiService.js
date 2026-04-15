@@ -56,7 +56,14 @@ async function rewriteMailWithOpenAi({ subject, from, sourceText }) {
         tryAttachResolvedCategories(normalizedFirstAttempt)
     );
 
-    if (!needsSecondRewriteAttempt(sourceText, enrichedFirstAttempt, useStrictLengthRules)) {
+    const firstValidationErrors = buildRewriteValidationErrors({
+        originalSubject: subject,
+        sourceText,
+        rewrittenPost: enrichedFirstAttempt,
+        useStrictLengthRules
+    });
+
+    if (!needsSecondRewriteAttempt(firstValidationErrors)) {
         return enrichedFirstAttempt;
     }
 
@@ -73,20 +80,15 @@ async function rewriteMailWithOpenAi({ subject, from, sourceText }) {
         attachResolvedCategories(normalizedSecondAttempt)
     );
 
-    if (isTooCloseToSource(sourceText, enrichedSecondAttempt.content_text)) {
-        throw new Error('OpenAI-Text ist noch zu nah am Originaltext.');
-    }
+    const secondValidationErrors = buildRewriteValidationErrors({
+        originalSubject: subject,
+        sourceText,
+        rewrittenPost: enrichedSecondAttempt,
+        useStrictLengthRules
+    });
 
-    if (useStrictLengthRules && enrichedSecondAttempt.content_text.length < minimumContentTextLength) {
-        throw new Error(`OpenAI-Inhalt ist zu kurz. Aktuell: ${enrichedSecondAttempt.content_text.length} Zeichen.`);
-    }
-
-    if (!Array.isArray(enrichedSecondAttempt.category_ids) || enrichedSecondAttempt.category_ids.length < minimumSelectedCategoryCount) {
-        throw new Error(`Es wurden weniger als ${minimumSelectedCategoryCount} finale Kategorien ermittelt.`);
-    }
-
-    if (!Array.isArray(enrichedSecondAttempt.thematic_keyword_names) || enrichedSecondAttempt.thematic_keyword_names.length < minimumThematicKeywordCount) {
-        throw new Error(`Es wurden weniger als ${minimumThematicKeywordCount} thematische Stichwörter ermittelt.`);
+    if (secondValidationErrors.length > 0) {
+        throw new Error(secondValidationErrors[0]);
     }
 
     return enrichedSecondAttempt;
@@ -180,17 +182,29 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         'Du bist Redaktor für eine professionelle Schweizer Immobilien-Website.',
         'Erstelle aus der gelieferten E-Mail einen eigenständigen redaktionellen WordPress-Entwurf.',
         'Übernimm keine erfundenen Fakten und bleibe inhaltlich beim gelieferten Input.',
-        'Schreibe sachlich, klar und professionell.',
+        'Schreibe neutral, professionell, journalistisch und zugleich interessant.',
+        'Schreibe sachlich, klar und gut lesbar.',
+        'Titel, Auszug und Inhalt müssen eigenständig neu formuliert werden.',
         'Der Text darf nicht 1:1 oder nahezu 1:1 aus dem Input übernommen werden.',
-        'Formuliere Titel, Auszug und Inhalt eigenständig neu.',
-        'Der Titel muss immer neu formuliert werden.',
-        'Übernimm den Originaltitel niemals unverändert und auch nicht nur mit kleinen Umstellungen.',
-        'Wähle für den Titel eine neue, redaktionelle, prägnante Formulierung mit maximal 40 Zeichen.',
-        'Der Textauszug soll den Beitrag kurz und verständlich zusammenfassen.',
+        'Der Titel muss immer neu formuliert werden und darf niemals dem Originaltitel entsprechen oder ihm nur leicht umgestellt ähneln.',
+        'Wähle für den Titel eine neue, redaktionelle und prägnante Formulierung mit maximal 40 Zeichen.',
+        'Der Titel darf keinen Doppelpunkt enthalten.',
+        'Im Titel dürfen keine Gedankenstriche, Halbgeviertstriche oder Bindestrich-Konstruktionen als Stilmittel vorkommen.',
+        'Verwende im Titel keine Firmennamen, Markennamen oder Produktnamen.',
+        'Verwende im Inhalt grundsätzlich keine Firmennamen, Markennamen oder Produktnamen.',
+        'Falls ein Firmenname, Markenname oder Produktname aus inhaltlichen Gründen zwingend notwendig ist, nenne ihn nur sparsam, neutral und ohne werbliche Wirkung.',
+        'Der Textauszug soll den Beitrag kurz, verständlich und sauber zusammenfassen.',
         'content_html soll ein sauberer WordPress-Inhalt sein.',
         'Verwende gültiges HTML, aber ohne <html> oder <body>.',
         'Gib keinen Markdown-Codeblock aus.',
         'Gib keinen Werbetext, keine Spam-Phrasen, keine fremdsprachigen Fragmente, keine Sonderzeichenketten und keine irrelevanten Zusätze aus.',
+        'Verwende im gesamten zurückgegebenen Text keine Gedankenstriche als Stilmittel.',
+        'Im Inhalt ist höchstens ein einzelner Gedankenstrich erlaubt, und nur wenn er sprachlich wirklich notwendig ist.',
+        'Baue den Beitrag redaktionell eigenständig auf und übernimm nicht einfach die Struktur der Vorlage.',
+        'Verwende nach Möglichkeit einen anderen Einstieg als die Vorlage.',
+        'Übernimm nicht die gleiche Reihenfolge der Aussagen, Absätze oder Argumente wie im Input.',
+        'Übernimm nicht bloss einzelne Sätze in leicht veränderter Form, sondern strukturiere, verdichte und formuliere den Inhalt redaktionell neu.',
+        'Vermeide auffällige Formulierungsmuster, Satzanfänge und Standardwendungen aus der Vorlage und ersetze sie durch eigenständige journalistische Formulierungen.',
         'Wenn der Input zu kurz ist, liefere einen sinnvollen kürzeren Beitrag statt künstlich Länge aufzufüllen.',
         'Wähle zusätzlich passende Kategorien aus der Liste allowed_category_options.',
         `selected_category_keys muss zwischen ${minimumRequestedCategoryCountFromAi} und ${maximumRequestedCategoryCountFromAi} Einträge enthalten.`,
@@ -208,10 +222,12 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
     ];
 
     if (forceStrongRewrite) {
-        instructionParts.push('Achte besonders darauf, dass Formulierungen und Satzbau klar vom Original abweichen.');
-        instructionParts.push('Wenn ein Titel oder eine Passage dem Input zu ähnlich ist, formuliere sie erneut um.');
-        instructionParts.push('Wenn die Kategorien zu allgemein sind, wähle passendere und spezifischere Kategorien aus der Liste.');
-        instructionParts.push('Wenn die Stichwörter zu allgemein sind, wähle passendere und thematischere Stichwörter.');
+        instructionParts.push('Achte besonders darauf, dass Formulierungen, Satzbau, Einstieg und Aufbau klar vom Original abweichen.');
+        instructionParts.push('Wenn ein Titel, ein Auszug, ein Absatz oder eine Passage dem Input zu ähnlich ist, formuliere sie vollständig neu.');
+        instructionParts.push('Wenn der Beitrag in Aufbau oder Reihenfolge noch zu nahe an der Vorlage ist, ordne den Inhalt neu.');
+        instructionParts.push('Wenn Kategorien zu allgemein sind, wähle passendere und spezifischere Kategorien aus der Liste.');
+        instructionParts.push('Wenn Stichwörter zu allgemein sind, wähle passendere und thematischere Stichwörter.');
+        instructionParts.push('Wenn der Titel einen Firmennamen, Markennamen, Produktnamen, Doppelpunkt oder Gedankenstrich enthält, formuliere ihn vollständig neu.');
     }
 
     if (useStrictLengthRules) {
@@ -306,7 +322,9 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         excerpt = buildExcerptFromText(contentText);
     }
 
-    excerpt = truncateToLength(excerpt, maximumExcerptLength);
+    excerpt = finalizeExcerptText(
+        truncateToLength(excerpt, maximumExcerptLength)
+    );
 
     if (useStrictLengthRules && excerpt.length < minimumExcerptLength) {
         throw new Error(`Textauszug ist zu kurz. Aktuell: ${excerpt.length} Zeichen.`);
@@ -383,32 +401,8 @@ function attachResolvedKeywords(normalizedGeneratedPost) {
     };
 }
 
-function needsSecondRewriteAttempt(sourceText, rewrittenPost, useStrictLengthRules) {
-    if (useStrictLengthRules && rewrittenPost.content_text.length < minimumContentTextLength) {
-        return true;
-    }
-
-    if (isTooCloseToSource(sourceText, rewrittenPost.content_text)) {
-        return true;
-    }
-
-    if (rewrittenPost.category_resolution_error) {
-        return true;
-    }
-
-    if (rewrittenPost.keyword_resolution_error) {
-        return true;
-    }
-
-    if (!Array.isArray(rewrittenPost.category_ids) || rewrittenPost.category_ids.length < minimumSelectedCategoryCount) {
-        return true;
-    }
-
-    if (!Array.isArray(rewrittenPost.thematic_keyword_names) || rewrittenPost.thematic_keyword_names.length < minimumThematicKeywordCount) {
-        return true;
-    }
-
-    return false;
+function needsSecondRewriteAttempt(validationErrors) {
+    return Array.isArray(validationErrors) && validationErrors.length > 0;
 }
 
 function isTooCloseToSource(sourceText, generatedText) {
@@ -427,22 +421,235 @@ function isTooCloseToSource(sourceText, generatedText) {
         return true;
     }
 
-    const sourceShingles = buildWordShingles(normalizedSource, 5);
-    const generatedShingles = buildWordShingles(normalizedGenerated, 5);
+    const fourWordOverlapRatio = calculateShingleOverlapRatio(normalizedSource, normalizedGenerated, 4);
+    if (fourWordOverlapRatio >= 0.35) {
+        return true;
+    }
 
-    if (sourceShingles.size === 0 || generatedShingles.size === 0) {
+    const fiveWordOverlapRatio = calculateShingleOverlapRatio(normalizedSource, normalizedGenerated, 5);
+    if (fiveWordOverlapRatio >= 0.22) {
+        return true;
+    }
+
+    const sentencePrefixOverlapRatio = calculateSentencePrefixOverlapRatio(sourceText, generatedText, 6);
+    if (sentencePrefixOverlapRatio >= 0.4) {
+        return true;
+    }
+
+    return false;
+}
+
+function buildRewriteValidationErrors({ originalSubject, sourceText, rewrittenPost, useStrictLengthRules }) {
+    const validationErrors = [];
+
+    if (useStrictLengthRules && rewrittenPost.content_text.length < minimumContentTextLength) {
+        validationErrors.push(`OpenAI-Inhalt ist zu kurz. Aktuell: ${rewrittenPost.content_text.length} Zeichen.`);
+    }
+
+    if (rewrittenPost.title.includes(':')) {
+        validationErrors.push('OpenAI-Titel enthält einen Doppelpunkt.');
+    }
+
+    if (containsDashLikeCharacterInTitle(rewrittenPost.title)) {
+        validationErrors.push('OpenAI-Titel enthält einen Gedankenstrich oder Bindestrich.');
+    }
+
+    if (isTitleTooCloseToSubject(originalSubject, rewrittenPost.title)) {
+        validationErrors.push('OpenAI-Titel ist dem Originaltitel zu ähnlich.');
+    }
+
+    const dashStyleCountInContent = countDashStyleOccurrences(rewrittenPost.content_text);
+    if (dashStyleCountInContent > 1) {
+        validationErrors.push(`OpenAI-Inhalt enthält zu viele Gedankenstriche. Aktuell: ${dashStyleCountInContent}.`);
+    }
+
+    if (isTooCloseToSource(sourceText, rewrittenPost.content_text)) {
+        validationErrors.push('OpenAI-Text ist noch zu nah am Originaltext.');
+    }
+
+    if (rewrittenPost.category_resolution_error) {
+        validationErrors.push(rewrittenPost.category_resolution_error);
+    }
+
+    if (rewrittenPost.keyword_resolution_error) {
+        validationErrors.push(rewrittenPost.keyword_resolution_error);
+    }
+
+    if (!Array.isArray(rewrittenPost.category_ids) || rewrittenPost.category_ids.length < minimumSelectedCategoryCount) {
+        validationErrors.push(`Es wurden weniger als ${minimumSelectedCategoryCount} finale Kategorien ermittelt.`);
+    }
+
+    if (!Array.isArray(rewrittenPost.thematic_keyword_names) || rewrittenPost.thematic_keyword_names.length < minimumThematicKeywordCount) {
+        validationErrors.push(`Es wurden weniger als ${minimumThematicKeywordCount} thematische Stichwörter ermittelt.`);
+    }
+
+    return validationErrors;
+}
+
+function finalizeExcerptText(excerpt) {
+    return String(excerpt || '')
+        .trim()
+        .replace(/[\s,;:-]+$/g, '')
+        .trim();
+}
+
+function containsDashLikeCharacterInTitle(title) {
+    return /[-–—]/.test(String(title || ''));
+}
+
+function countDashStyleOccurrences(text) {
+    const dashMatches = String(text || '').match(/(?:^|\s)[-–—](?=\s|$)|[–—]/g);
+    return dashMatches ? dashMatches.length : 0;
+}
+
+function isTitleTooCloseToSubject(originalSubject, generatedTitle) {
+    const normalizedOriginalSubject = normalizeComparisonText(originalSubject);
+    const normalizedGeneratedTitle = normalizeComparisonText(generatedTitle);
+
+    if (!normalizedOriginalSubject || !normalizedGeneratedTitle) {
         return false;
     }
 
+    if (normalizedOriginalSubject === normalizedGeneratedTitle) {
+        return true;
+    }
+
+    if (
+        normalizedGeneratedTitle.length >= 12 &&
+        (
+            normalizedOriginalSubject.includes(normalizedGeneratedTitle) ||
+            normalizedGeneratedTitle.includes(normalizedOriginalSubject)
+        )
+    ) {
+        return true;
+    }
+
+    const originalWords = extractMeaningfulComparisonWords(normalizedOriginalSubject);
+    const generatedWords = extractMeaningfulComparisonWords(normalizedGeneratedTitle);
+
+    if (originalWords.length === 0 || generatedWords.length === 0) {
+        return false;
+    }
+
+    const wordOverlapRatio = calculateWordOverlapRatio(originalWords, generatedWords);
+    if (wordOverlapRatio >= 0.8 && Math.min(originalWords.length, generatedWords.length) >= 2) {
+        return true;
+    }
+
+    const originalTwoWordShingles = buildArrayShingles(originalWords, 2);
+    const generatedTwoWordShingles = buildArrayShingles(generatedWords, 2);
+    const twoWordOverlapRatio = calculateSetOverlapRatio(originalTwoWordShingles, generatedTwoWordShingles);
+
+    if (twoWordOverlapRatio >= 0.5 && Math.min(originalWords.length, generatedWords.length) >= 3) {
+        return true;
+    }
+
+    return false;
+}
+
+function extractMeaningfulComparisonWords(normalizedText) {
+    const ignoredWords = new Set([
+        'der', 'die', 'das', 'den', 'dem', 'des',
+        'ein', 'eine', 'einer', 'eines', 'einem', 'einen',
+        'und', 'oder', 'aber', 'doch', 'noch',
+        'im', 'in', 'am', 'an', 'auf', 'zu', 'zum', 'zur', 'von', 'mit', 'fuer',
+        'sich', 'ist', 'sind', 'war', 'waren', 'wird', 'werden',
+        'weiter', 'erneut', 'leicht', 'mehr', 'weniger', 'etwas'
+    ]);
+
+    return String(normalizedText || '')
+        .split(' ')
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .filter((entry) => entry.length > 2)
+        .filter((entry) => !ignoredWords.has(entry));
+}
+
+function calculateWordOverlapRatio(wordsA, wordsB) {
+    const setA = new Set(wordsA);
+    const setB = new Set(wordsB);
+
     let overlapCount = 0;
-    for (const shingle of sourceShingles) {
-        if (generatedShingles.has(shingle)) {
+    for (const entry of setA) {
+        if (setB.has(entry)) {
             overlapCount += 1;
         }
     }
 
-    const overlapRatio = overlapCount / Math.min(sourceShingles.size, generatedShingles.size);
-    return overlapRatio >= 0.6;
+    return overlapCount / Math.min(setA.size, setB.size);
+}
+
+function calculateShingleOverlapRatio(textA, textB, shingleSize) {
+    const shinglesA = buildWordShingles(textA, shingleSize);
+    const shinglesB = buildWordShingles(textB, shingleSize);
+
+    return calculateSetOverlapRatio(shinglesA, shinglesB);
+}
+
+function calculateSentencePrefixOverlapRatio(sourceText, generatedText, prefixWordCount) {
+    const sourceSentencePrefixes = buildSentencePrefixes(sourceText, prefixWordCount);
+    const generatedSentencePrefixes = buildSentencePrefixes(generatedText, prefixWordCount);
+
+    return calculateSetOverlapRatio(sourceSentencePrefixes, generatedSentencePrefixes);
+}
+
+function buildSentencePrefixes(text, prefixWordCount) {
+    const comparableSentences = splitIntoComparableSentences(text);
+    const prefixSet = new Set();
+
+    for (const sentence of comparableSentences) {
+        const words = normalizeComparisonText(sentence)
+            .split(' ')
+            .filter(Boolean);
+
+        if (words.length < prefixWordCount) {
+            continue;
+        }
+
+        prefixSet.add(words.slice(0, prefixWordCount).join(' '));
+    }
+
+    return prefixSet;
+}
+
+function splitIntoComparableSentences(text) {
+    return String(text || '')
+        .split(/[\.\!\?\n]+/)
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length >= 25);
+}
+
+function buildArrayShingles(words, shingleSize) {
+    const shingleSet = new Set();
+
+    if (words.length < shingleSize) {
+        if (words.length > 0) {
+            shingleSet.add(words.join(' '));
+        }
+
+        return shingleSet;
+    }
+
+    for (let index = 0; index <= words.length - shingleSize; index += 1) {
+        shingleSet.add(words.slice(index, index + shingleSize).join(' '));
+    }
+
+    return shingleSet;
+}
+
+function calculateSetOverlapRatio(setA, setB) {
+    if (setA.size === 0 || setB.size === 0) {
+        return 0;
+    }
+
+    let overlapCount = 0;
+    for (const entry of setA) {
+        if (setB.has(entry)) {
+            overlapCount += 1;
+        }
+    }
+
+    return overlapCount / Math.min(setA.size, setB.size);
 }
 
 function buildWordShingles(text, size) {
