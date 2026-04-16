@@ -25,34 +25,39 @@ Keep the Azurite terminal and the Function terminal running while testing.
 ## Azure deploy (Terminal)
 
 1. Login to Azure
-
+```
 az login
-
+```
 2. Publish the project from the project folder
-
+```
 func azure functionapp publish mail-to-wordpress
-
+```
 3. In Azure Portal, open the Function App and add the required Environment variables under:
 
 Settings -> Environment variables -> App settings
 
 Custom settings used by this project:
 
-OPENAI_API_KEY
-OPENAI_MODEL
-MAIL_ALLOWED_SENDERS
-WORDPRESS_BASE_URL
-WORDPRESS_USERNAME
-WORDPRESS_APPLICATION_PASSWORD
-WORDPRESS_DEFAULT_STATUS
-WORDPRESS_DEFAULT_CATEGORY_IDS
-WORDPRESS_ACF_LEAD_FIELD_NAME
+* OPENAI_API_KEY
+* OPENAI_MODEL
+* OPENAI_IMAGE_MODEL
+* OPENAI_IMAGE_SIZE
+* OPENAI_IMAGE_QUALITY
+* OPENAI_IMAGE_OUTPUT_FORMAT
+* ENABLE_FEATURED_IMAGE_GENERATION
+* MAIL_ALLOWED_SENDERS
+* WORDPRESS_BASE_URL
+* WORDPRESS_USERNAME
+* WORDPRESS_APPLICATION_PASSWORD
+* WORDPRESS_DEFAULT_STATUS
+* WORDPRESS_DEFAULT_CATEGORY_IDS
+* WORDPRESS_ACF_LEAD_FIELD_NAME
 
 Do not replace Azure-managed settings like:
 
-APPLICATIONINSIGHTS_CONNECTION_STRING
-AzureWebJobsStorage
-DEPLOYMENT_STORAGE_CONNECTION_STRING
+* APPLICATIONINSIGHTS_CONNECTION_STRING
+* AzureWebJobsStorage
+* DEPLOYMENT_STORAGE_CONNECTION_STRING
 
 ## Azure test
 
@@ -65,9 +70,9 @@ Function App -> Functions -> processMailToWordPress -> Get function URL
 default (Function key)
 
 3. Test the deployed function
-
+```
 curl -X POST "https://mail-to-wordpress.azurewebsites.net/api/process-mail-to-wordpress?code=YOUR_FUNCTION_KEY" -H "Content-Type: application/json" --data-binary "@test-data\real-mail-01.json"
-
+```
 ## Notes
 
 - Function name in Azure: mail-to-wordpress
