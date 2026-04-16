@@ -1,6 +1,10 @@
 const {
     openAiApiKey,
-    openAiModel
+    openAiModel,
+    openAiImageModel,
+    openAiImageSize,
+    openAiImageQuality,
+    openAiImageOutputFormat
 } = require('../config/environment');
 
 const {
@@ -228,6 +232,12 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         instructionParts.push('Wenn Kategorien zu allgemein sind, wähle passendere und spezifischere Kategorien aus der Liste.');
         instructionParts.push('Wenn Stichwörter zu allgemein sind, wähle passendere und thematischere Stichwörter.');
         instructionParts.push('Wenn der Titel einen Firmennamen, Markennamen, Produktnamen, Doppelpunkt oder Gedankenstrich enthält, formuliere ihn vollständig neu.');
+
+        instructionParts.push('featured_image_prompt_en muss in englischer Sprache formuliert sein.');
+        instructionParts.push('featured_image_prompt_en muss eine realistische redaktionelle Bildidee für einen WordPress-Featured-Image-Header beschreiben.');
+        instructionParts.push('featured_image_prompt_en soll fotografisch, glaubwürdig, modern und professionell wirken.');
+        instructionParts.push('featured_image_prompt_en darf keine Logos, keinen lesbaren Text, keine Wasserzeichen, keine UI-Elemente, keine Infografiken und keinen Cartoon-Stil verlangen.');
+        instructionParts.push('featured_image_alt_text_de muss einen kurzen, sachlichen deutschen Alt-Text für das Bild liefern.');
     }
 
     if (useStrictLengthRules) {
@@ -288,9 +298,28 @@ function buildResponseSchema({ useStrictLengthRules }) {
                 },
                 minItems: minimumThematicKeywordCount,
                 maxItems: maximumRequestedKeywordCountFromAi
+            },
+            featured_image_prompt_en: {
+                type: 'string',
+                minLength: 30,
+                maxLength: 1200
+            },
+            featured_image_alt_text_de: {
+                type: 'string',
+                minLength: 10,
+                maxLength: 180
             }
         },
-        required: ['title', 'excerpt', 'slug', 'content_html', 'selected_category_keys', 'keyword_names'],
+        required: [
+            'title',
+            'excerpt',
+            'slug',
+            'content_html',
+            'selected_category_keys',
+            'keyword_names',
+            'featured_image_prompt_en',
+            'featured_image_alt_text_de'
+        ],
         additionalProperties: false
     };
 }
@@ -342,6 +371,17 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         throw new Error('OpenAI-Antwort enthält keinen gültigen Textauszug.');
     }
 
+    const featuredImagePrompt = normalizeWhitespace(parsedResponse.featured_image_prompt_en || '');
+    const featuredImageAltText = normalizeWhitespace(parsedResponse.featured_image_alt_text_de || '');
+
+    if (!featuredImagePrompt) {
+        throw new Error('OpenAI-Antwort enthält keinen gültigen Bildprompt.');
+    }
+
+    if (!featuredImageAltText) {
+        throw new Error('OpenAI-Antwort enthält keinen gültigen Bild-Alt-Text.');
+    }
+
     return {
         title,
         excerpt,
@@ -350,7 +390,9 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         content_html: contentHtml,
         content_text: contentText,
         selected_category_keys: normalizeSelectedCategoryKeys(parsedResponse.selected_category_keys),
-        keyword_names: normalizeAiKeywordNames(parsedResponse.keyword_names)
+        keyword_names: normalizeAiKeywordNames(parsedResponse.keyword_names),
+        featured_image_prompt_en: featuredImagePrompt,
+        featured_image_alt_text_de: featuredImageAltText
     };
 }
 
@@ -702,7 +744,56 @@ function extractOutputText(responseBody) {
     return '';
 }
 
+async function generateFeaturedImageWithOpenAi(rewrittenPost) {
+    const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${openAiApiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: openAiImageModel,
+            prompt: rewrittenPost.featured_image_prompt_en,
+            size: openAiImageSize,
+            quality: openAiImageQuality,
+            output_format: openAiImageOutputFormat,
+            background: 'opaque',
+            moderation: 'auto'
+        })
+    });
+
+    if (!imageResponse.ok) {
+        const errorText = await imageResponse.text();
+        throw new Error(`OpenAI Bildfehler ${imageResponse.status}: ${errorText}`);
+    }
+
+    const imageResponseBody = await imageResponse.json();
+    const imageBase64 = imageResponseBody?.data?.[0]?.b64_json;
+
+    if (!imageBase64) {
+        throw new Error('OpenAI hat kein Bild zurückgegeben.');
+    }
+
+    const imageBuffer = Buffer.from(imageBase64, 'base64');
+    const safeSlug = sanitizeSlug(rewrittenPost.slug || rewrittenPost.title || 'featured-image') || 'featured-image';
+    const fileExtension = openAiImageOutputFormat === 'png' ? 'png' : openAiImageOutputFormat === 'webp' ? 'webp' : 'jpg';
+    const mimeType = openAiImageOutputFormat === 'png'
+        ? 'image/png'
+        : openAiImageOutputFormat === 'webp'
+            ? 'image/webp'
+            : 'image/jpeg';
+
+    return {
+        buffer: imageBuffer,
+        mimeType,
+        filename: `${safeSlug}.${fileExtension}`,
+        title: rewrittenPost.title,
+        altText: rewrittenPost.featured_image_alt_text_de
+    };
+}
+
 module.exports = {
     rewriteMailWithOpenAi,
-    shouldUseStrictLengthRules
+    shouldUseStrictLengthRules,
+    generateFeaturedImageWithOpenAi
 };

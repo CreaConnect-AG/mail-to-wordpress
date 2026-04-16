@@ -72,9 +72,21 @@ async function createWordPressDraft(rewrittenPost) {
         }
     }
 
+    let featuredImageResult = null;
+
+    if (rewrittenPost.generated_featured_image) {
+        featuredImageResult = await uploadAndAssignFeaturedImage({
+            postId: createdPost.id,
+            generatedFeaturedImage: rewrittenPost.generated_featured_image,
+            authorizationHeader
+        });
+    }
+
     return {
         ...createdPost,
-        assigned_tag_ids: assignedTagIds
+        assigned_tag_ids: assignedTagIds,
+        featured_image_media_id: featuredImageResult?.mediaId || null,
+        featured_image_url: featuredImageResult?.sourceUrl || null
     };
 }
 
@@ -177,6 +189,66 @@ async function updateWordPressAcfField({ postId, fieldName, fieldValue, authoriz
     });
 
     return updateResponse.ok;
+}
+
+async function uploadAndAssignFeaturedImage({ postId, generatedFeaturedImage, authorizationHeader }) {
+    const uploadResponse = await fetch(`${wordpressBaseUrl}/wp-json/wp/v2/media`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${authorizationHeader}`,
+            'Content-Type': generatedFeaturedImage.mimeType,
+            'Content-Disposition': `attachment; filename="${generatedFeaturedImage.filename}"`
+        },
+        body: generatedFeaturedImage.buffer
+    });
+
+    if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        throw new Error(`WordPress Medien-Upload Fehler ${uploadResponse.status}: ${errorText}`);
+    }
+
+    const uploadedMedia = await uploadResponse.json();
+
+    const updateMediaResponse = await fetch(`${wordpressBaseUrl}/wp-json/wp/v2/media/${uploadedMedia.id}`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${authorizationHeader}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            title: generatedFeaturedImage.title,
+            alt_text: generatedFeaturedImage.altText,
+            post: postId
+        })
+    });
+
+    if (!updateMediaResponse.ok) {
+        const errorText = await updateMediaResponse.text();
+        throw new Error(`WordPress Medien-Metadaten Fehler ${updateMediaResponse.status}: ${errorText}`);
+    }
+
+    const updatedMedia = await updateMediaResponse.json();
+
+    const assignResponse = await fetch(`${wordpressBaseUrl}/wp-json/wp/v2/posts/${postId}`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${authorizationHeader}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            featured_media: uploadedMedia.id
+        })
+    });
+
+    if (!assignResponse.ok) {
+        const errorText = await assignResponse.text();
+        throw new Error(`WordPress Featured-Image Fehler ${assignResponse.status}: ${errorText}`);
+    }
+
+    return {
+        mediaId: uploadedMedia.id,
+        sourceUrl: updatedMedia.source_url || uploadedMedia.source_url || null
+    };
 }
 
 module.exports = {

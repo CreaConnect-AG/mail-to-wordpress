@@ -5,7 +5,8 @@ const {
     wordpressBaseUrl,
     wordpressUsername,
     wordpressApplicationPassword,
-    mailAllowedSenders
+    mailAllowedSenders,
+    enableFeaturedImageGeneration
 } = require('../config/environment');
 
 const {
@@ -16,7 +17,8 @@ const {
 
 const {
     rewriteMailWithOpenAi,
-    shouldUseStrictLengthRules
+    shouldUseStrictLengthRules,
+    generateFeaturedImageWithOpenAi
 } = require('../services/openAiService');
 
 const {
@@ -69,6 +71,10 @@ app.http('processMailToWordPress', {
                 sourceText
             });
 
+            if (enableFeaturedImageGeneration) {
+                rewrittenPost.generated_featured_image = await generateFeaturedImageWithOpenAi(rewrittenPost);
+            }
+
             const createdWordPressPost = await createWordPressDraft(rewrittenPost);
 
             return {
@@ -88,7 +94,10 @@ app.http('processMailToWordPress', {
                         assigned_category_titles: rewrittenPost.selected_category_titles || [],
                         assigned_tag_ids: createdWordPressPost.assigned_tag_ids || [],
                         assigned_tag_names: rewrittenPost.tag_names || [],
-                        assigned_thematic_keyword_names: rewrittenPost.thematic_keyword_names || []
+                        assigned_thematic_keyword_names: rewrittenPost.thematic_keyword_names || [],
+                        featured_image_media_id: createdWordPressPost.featured_image_media_id || null,
+                        featured_image_url: createdWordPressPost.featured_image_url || null,
+                        featured_image_prompt_en: rewrittenPost.featured_image_prompt_en || null
                     }
                 }
             };
