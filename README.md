@@ -5,21 +5,21 @@ Azure Function project that receives email content, rewrites it with OpenAI, and
 ## Local start
 
 1. Start Azurite in the first terminal
-
+```
 azurite
-
+```
 2. Start the Azure Function in the second terminal
-
+```
 func start
-
+```
 3. Send a local test request in the third terminal
-
+```
 curl -X POST "http://localhost:7071/api/process-mail-to-wordpress" -H "Content-Type: application/json" -d "{\"from\":\"newsletter@anbieter.ch\",\"subject\":\"Test Mail\",\"text_body\":\"This is a test mail content.\"}"
-
+```
 4. Or test with a local JSON file
-
+```
 curl -X POST "http://localhost:7071/api/process-mail-to-wordpress" -H "Content-Type: application/json" --data-binary "@test-data\real-mail-01.json"
-
+```
 Keep the Azurite terminal and the Function terminal running while testing.
 
 ## Azure deploy (Terminal)
