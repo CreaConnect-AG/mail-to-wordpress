@@ -1,6 +1,6 @@
 # mail-to-wordpress
 
-Azure Function project that receives email content, rewrites it with OpenAI, and creates a WordPress draft with categories, tags, and ACF lead text.
+Azure Function project that receives email content, rewrites it with OpenAI, and creates a WordPress draft with categories, tags, ACF lead text, and optionally a featured image generated through the OpenAI API.
 
 ## Local start
 
@@ -78,3 +78,4 @@ curl -X POST "https://mail-to-wordpress.azurewebsites.net/api/process-mail-to-wo
 - Function name in Azure: mail-to-wordpress
 - Route: /api/process-mail-to-wordpress
 - test-data/ is ignored by Git for local test files
+- Featured image generation can be enabled with ENABLE_FEATURED_IMAGE_GENERATION=true
