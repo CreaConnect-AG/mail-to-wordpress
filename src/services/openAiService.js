@@ -1,10 +1,13 @@
 const {
-    openAiApiKey,
-    openAiModel,
-    openAiImageModel,
-    openAiImageSize,
-    openAiImageQuality,
-    openAiImageOutputFormat
+  openAiApiKey,
+  openAiModel,
+  openAiImageModel,
+  openAiImageSize,
+  openAiImageQuality,
+  openAiImageOutputFormat,
+  enableOpenAiWebSearch,
+  openAiWebSearchContextSize,
+  openAiWebSearchBlockedDomains
 } = require('../config/environment');
 
 const {
@@ -116,42 +119,50 @@ async function requestOpenAiRewrite({ subject, from, sourceText, forceStrongRewr
         model: openAiModel,
         input: [
             {
-                role: 'developer',
-                content: [
-                    {
-                        type: 'input_text',
-                        text: developerInstruction
-                    }
-                ]
+            role: 'developer',
+            content: [
+                {
+                type: 'input_text',
+                text: developerInstruction
+                }
+            ]
             },
             {
-                role: 'user',
-                content: [
+            role: 'user',
+            content: [
+                {
+                type: 'input_text',
+                text: JSON.stringify(
                     {
-                        type: 'input_text',
-                        text: JSON.stringify(
-                            {
-                                subject,
-                                from,
-                                source_text: sourceText,
-                                allowed_category_options: getAllowedCategoryOptionsForAi()
-                            },
-                            null,
-                            2
-                        )
-                    }
-                ]
+                        current_date: getCurrentSwissDateText(),
+                        current_timezone: 'Europe/Zurich',
+                        subject,
+                        from,
+                        source_text: sourceText,
+                        allowed_category_options: getAllowedCategoryOptionsForAi()
+                    },
+                    null,
+                    2
+                )
+                }
+            ]
             }
         ],
         text: {
             format: {
-                type: 'json_schema',
-                name: 'wordpress_post',
-                strict: true,
-                schema: responseSchema
+            type: 'json_schema',
+            name: 'wordpress_post',
+            strict: true,
+            schema: responseSchema
             }
         }
     };
+
+    if (enableOpenAiWebSearch) {
+        requestPayload.tools = [buildWebSearchTool()];
+        requestPayload.tool_choice = 'required';
+        requestPayload.include = ['web_search_call.action.sources'];
+    }
 
     const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
@@ -181,13 +192,87 @@ async function requestOpenAiRewrite({ subject, from, sourceText, forceStrongRewr
     }
 }
 
+function buildWebSearchTool() {
+    const webSearchTool = {
+        type: 'web_search',
+        search_context_size: normalizeWebSearchContextSize(openAiWebSearchContextSize),
+        external_web_access: true
+    };
+
+    const blockedDomains = normalizeDomainList(openAiWebSearchBlockedDomains);
+
+    if (blockedDomains.length > 0) {
+        webSearchTool.filters = {
+            blocked_domains: blockedDomains
+        };
+    }
+
+    return webSearchTool;
+}
+
+function normalizeWebSearchContextSize(value) {
+    const normalizedValue = String(value || '').trim().toLowerCase();
+
+    if (['low', 'medium', 'high'].includes(normalizedValue)) {
+        return normalizedValue;
+    }
+
+    return 'medium';
+}
+
+function normalizeDomainList(domainList) {
+    if (!Array.isArray(domainList)) {
+        return [];
+    }
+
+    return domainList
+    .map((domain) => String(domain || '').trim().toLowerCase())
+    .map((domain) => domain.replace(/^https?:\/\//, '').replace(/\/.*$/, ''))
+    .filter(Boolean);
+}
+
+function getCurrentSwissDateText() {
+    return new Intl.DateTimeFormat('de-CH', {
+        timeZone: 'Europe/Zurich',
+        year: 'numeric',
+        month: 'long',
+        day: '2-digit'
+    }).format(new Date());
+}
+
 function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules }) {
+    const currentDateText = getCurrentSwissDateText();
+
     const instructionParts = [
         'Du bist Redaktor für eine professionelle Schweizer Immobilien-Website.',
-        'Erstelle aus der gelieferten E-Mail einen eigenständigen redaktionellen WordPress-Entwurf.',
-        'Übernimm keine erfundenen Fakten und bleibe inhaltlich beim gelieferten Input.',
+         `Aktuelles Datum für Recherche und Einordnung: ${currentDateText}.`,
+        'Die Web-Recherche muss die aktuelle Informationslage zu diesem Datum berücksichtigen.',
+        'Suche bevorzugt nach aktuellen Quellen und prüfe, ob Informationen noch gültig sind.',
+        'Verwende keine alten Informationen als aktuelle Fakten, wenn neuere Quellen verfügbar sind.',
+        'Achte bei Quellen auf Veröffentlichungsdatum, Aktualisierungsdatum und erkennbare Aktualität.',
+        'Wenn eine Quelle älter ist, darf sie nur für Hintergrundinformationen, Historie oder unveränderte Fakten verwendet werden.',
+        'Wenn sich ältere und neuere Quellen widersprechen, verwende die neuere und verlässlichere Quelle oder formuliere die Unsicherheit klar.',
+        'Wenn keine aktuellen belastbaren Webinformationen gefunden werden, schreibe keinen scheinbar aktuellen Beitrag, sondern formuliere zurückhaltend.',
+        'Der Beitrag soll den Stand der recherchierten Informationen zum aktuellen Datum widerspiegeln.',
+        'Die gelieferte E-Mail ist nur der Ausgangspunkt für die Recherche und nicht das Endergebnis.',
+        'Nutze die E-Mail, um relevante Themen, Firmen, Projekte, Orte, Personen, Daten, Zahlen, Entwicklungen und mögliche Nachrichtenwerte zu erkennen.',
+        'Erstelle keinen blossen Rewrite und keine sprachlich umformulierte Version der E-Mail.',
+        'Führe verpflichtend eine Web-Recherche durch, bevor du den Beitrag schreibst.',
+        'Recherchiere zusätzliche, verlässliche Informationen aus dem Web, die den Inhalt einordnen, ergänzen oder aus einer neuen Perspektive beleuchten.',
+        'Bevorzuge offizielle Quellen, Unternehmensseiten, Projektseiten, Behörden, Handelsregister, Medienmitteilungen, seriöse Medien, Branchenquellen und belastbare Marktdaten.',
+        'Nutze keine Foren, Social-Media-Posts, Reddit, Quora oder Wikipedia als Hauptquelle.',
+        'Übernimm keine ungeprüften Behauptungen aus der E-Mail.',
+        'Prüfe Aussagen aus der E-Mail anhand der Web-Recherche, bevor du sie als Tatsache verwendest.',
+        'Neue Fakten aus dem Web dürfen nur verwendet werden, wenn sie durch eine verlässliche Quelle gestützt sind.',
+        'Wenn Angaben aus der E-Mail im Web nicht verifiziert werden können, formuliere sie vorsichtig oder lasse sie weg.',
+        'Wenn die Web-Recherche zusätzliche relevante Informationen liefert, erweitere den Beitrag damit und wähle bei Bedarf einen neuen redaktionellen Blickwinkel.',
+        'Wenn die Web-Recherche zeigt, dass ein anderer Aspekt wichtiger, aktueller oder interessanter ist als der E-Mail-Text selbst, darf der Beitrag aus diesem neuen Blickwinkel aufgebaut werden.',
+        'Wenn die Web-Recherche keine belastbaren Zusatzinformationen liefert, schreibe einen eigenständigen Beitrag auf Basis des Inputs, aber ohne ungesicherte Zusatzdetails.',
+        'Der fertige Beitrag muss wie ein eigenständiger redaktioneller Artikel wirken und deutlich mehr sein als eine Umformulierung der E-Mail.',
+        'Der Beitrag soll informieren, einordnen und für Leserinnen und Leser einer Schweizer Immobilien-Website relevant sein.',
         'Schreibe neutral, professionell, journalistisch und zugleich interessant.',
         'Schreibe sachlich, klar und gut lesbar.',
+        'Vermeide werbliche Sprache, PR-Floskeln und unkritische Formulierungen.',
         'Titel, Auszug und Inhalt müssen eigenständig neu formuliert werden.',
         'Der Text darf nicht 1:1 oder nahezu 1:1 aus dem Input übernommen werden.',
         'Der Titel muss immer neu formuliert werden und darf niemals dem Originaltitel entsprechen oder ihm nur leicht umgestellt ähneln.',
@@ -198,6 +283,7 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         'Verwende im Inhalt grundsätzlich keine Firmennamen, Markennamen oder Produktnamen.',
         'Falls ein Firmenname, Markenname oder Produktname aus inhaltlichen Gründen zwingend notwendig ist, nenne ihn nur sparsam, neutral und ohne werbliche Wirkung.',
         'Der Textauszug soll den Beitrag kurz, verständlich und sauber zusammenfassen.',
+        'Der Textauszug soll nicht nur die E-Mail zusammenfassen, sondern den redaktionellen Kern des neu recherchierten Beitrags wiedergeben.',
         'content_html soll ein sauberer WordPress-Inhalt sein.',
         'Verwende gültiges HTML, aber ohne <html> oder <body>.',
         'Gib keinen Markdown-Codeblock aus.',
@@ -206,10 +292,14 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         'Im Inhalt ist höchstens ein einzelner Gedankenstrich erlaubt, und nur wenn er sprachlich wirklich notwendig ist.',
         'Baue den Beitrag redaktionell eigenständig auf und übernimm nicht einfach die Struktur der Vorlage.',
         'Verwende nach Möglichkeit einen anderen Einstieg als die Vorlage.',
+        'Beginne den Beitrag mit dem wichtigsten redaktionellen Ergebnis der Recherche, nicht zwingend mit dem ersten Punkt aus der E-Mail.',
         'Übernimm nicht die gleiche Reihenfolge der Aussagen, Absätze oder Argumente wie im Input.',
-        'Übernimm nicht bloss einzelne Sätze in leicht veränderter Form, sondern strukturiere, verdichte und formuliere den Inhalt redaktionell neu.',
+        'Übernimm nicht bloss einzelne Sätze in leicht veränderter Form, sondern strukturiere, verdichte, prüfe, ergänze und formuliere den Inhalt redaktionell neu.',
         'Vermeide auffällige Formulierungsmuster, Satzanfänge und Standardwendungen aus der Vorlage und ersetze sie durch eigenständige journalistische Formulierungen.',
-        'Wenn der Input zu kurz ist, liefere einen sinnvollen kürzeren Beitrag statt künstlich Länge aufzufüllen.',
+        'Wenn der Input zu kurz ist, nutze die Web-Recherche für sinnvollen Kontext, aber fülle den Beitrag nicht künstlich mit irrelevanten Informationen auf.',
+        'Wenn Webquellen verwendet werden, soll content_html am Ende einen kurzen Quellenabschnitt mit passenden HTML-Links enthalten.',
+        'Der Quellenabschnitt soll nur Quellen enthalten, die tatsächlich für zusätzliche Informationen im Beitrag verwendet wurden.',
+        'Falls das JSON-Schema ein Feld source_references enthält, fülle es mit den wichtigsten tatsächlich verwendeten Webquellen.',
         'Wähle zusätzlich passende Kategorien aus der Liste allowed_category_options.',
         `selected_category_keys muss zwischen ${minimumRequestedCategoryCountFromAi} und ${maximumRequestedCategoryCountFromAi} Einträge enthalten.`,
         'Verwende nur category keys aus allowed_category_options.',
@@ -222,6 +312,11 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         `keyword_names darf höchstens ${maximumRequestedKeywordCountFromAi} Einträge enthalten.`,
         `Die fixen Stichwörter ${fixedKeywordNames.join(', ')} werden vom System ergänzt und dürfen nicht in keyword_names enthalten sein.`,
         'Gib keine Duplikate in keyword_names aus.',
+        'featured_image_prompt_en muss in englischer Sprache formuliert sein.',
+        'featured_image_prompt_en muss eine realistische redaktionelle Bildidee für einen WordPress-Featured-Image-Header beschreiben.',
+        'featured_image_prompt_en soll fotografisch, glaubwürdig, modern und professionell wirken.',
+        'featured_image_prompt_en darf keine Logos, keinen lesbaren Text, keine Wasserzeichen, keine UI-Elemente, keine Infografiken und keinen Cartoon-Stil verlangen.',
+        'featured_image_alt_text_de muss einen kurzen, sachlichen deutschen Alt-Text für das Bild liefern.',
         'Gib ausschliesslich valides JSON gemäss dem vorgegebenen Schema zurück.'
     ];
 
@@ -229,23 +324,19 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         instructionParts.push('Achte besonders darauf, dass Formulierungen, Satzbau, Einstieg und Aufbau klar vom Original abweichen.');
         instructionParts.push('Wenn ein Titel, ein Auszug, ein Absatz oder eine Passage dem Input zu ähnlich ist, formuliere sie vollständig neu.');
         instructionParts.push('Wenn der Beitrag in Aufbau oder Reihenfolge noch zu nahe an der Vorlage ist, ordne den Inhalt neu.');
+        instructionParts.push('Wenn der Beitrag zu stark nach einer E-Mail-Zusammenfassung klingt, schreibe ihn stärker als eigenständigen redaktionellen Artikel.');
+        instructionParts.push('Wenn die Web-Recherche einen besseren redaktionellen Fokus liefert als der ursprüngliche E-Mail-Aufbau, richte den Beitrag auf diesen Fokus aus.');
         instructionParts.push('Wenn Kategorien zu allgemein sind, wähle passendere und spezifischere Kategorien aus der Liste.');
         instructionParts.push('Wenn Stichwörter zu allgemein sind, wähle passendere und thematischere Stichwörter.');
         instructionParts.push('Wenn der Titel einen Firmennamen, Markennamen, Produktnamen, Doppelpunkt oder Gedankenstrich enthält, formuliere ihn vollständig neu.');
-
-        instructionParts.push('featured_image_prompt_en muss in englischer Sprache formuliert sein.');
-        instructionParts.push('featured_image_prompt_en muss eine realistische redaktionelle Bildidee für einen WordPress-Featured-Image-Header beschreiben.');
-        instructionParts.push('featured_image_prompt_en soll fotografisch, glaubwürdig, modern und professionell wirken.');
-        instructionParts.push('featured_image_prompt_en darf keine Logos, keinen lesbaren Text, keine Wasserzeichen, keine UI-Elemente, keine Infografiken und keinen Cartoon-Stil verlangen.');
-        instructionParts.push('featured_image_alt_text_de muss einen kurzen, sachlichen deutschen Alt-Text für das Bild liefern.');
     }
 
     if (useStrictLengthRules) {
         instructionParts.push(`Der Textauszug muss mindestens ${minimumExcerptLength} und maximal ${maximumExcerptLength} Zeichen lang sein.`);
         instructionParts.push(`content_html muss mindestens ${minimumContentTextLength} und maximal ${maximumContentHtmlLength} Zeichen lang sein.`);
     } else {
-        instructionParts.push(`Der Textauszug soll bevorzugt zwischen ${minimumExcerptLength} und ${maximumExcerptLength} Zeichen liegen, falls der Input dafür lang genug ist.`);
-        instructionParts.push(`content_html soll bevorzugt mindestens ${minimumContentTextLength} Zeichen lang sein, falls der Input dafür lang genug ist, aber maximal ${maximumContentHtmlLength} Zeichen.`);
+        instructionParts.push(`Der Textauszug soll bevorzugt zwischen ${minimumExcerptLength} und ${maximumExcerptLength} Zeichen liegen, falls der Input und die Web-Recherche dafür genug Substanz liefern.`);
+        instructionParts.push(`content_html soll bevorzugt mindestens ${minimumContentTextLength} Zeichen lang sein, falls der Input und die Web-Recherche dafür genug Substanz liefern, aber maximal ${maximumContentHtmlLength} Zeichen.`);
     }
 
     return instructionParts.join(' ');
@@ -308,6 +399,33 @@ function buildResponseSchema({ useStrictLengthRules }) {
                 type: 'string',
                 minLength: 10,
                 maxLength: 180
+            },
+            source_references: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        title: {
+                            type: 'string',
+                            minLength: 2,
+                            maxLength: 180
+                        },
+                        url: {
+                            type: 'string',
+                            minLength: 10,
+                            maxLength: 500
+                        },
+                        used_for: {
+                            type: 'string',
+                            minLength: 10,
+                            maxLength: 300
+                        }
+                    },
+                    required: ['title', 'url', 'used_for'],
+                    additionalProperties: false
+                },
+                minItems: enableOpenAiWebSearch ? 1 : 0,
+                maxItems: 8
             }
         },
         required: [
@@ -318,7 +436,8 @@ function buildResponseSchema({ useStrictLengthRules }) {
             'selected_category_keys',
             'keyword_names',
             'featured_image_prompt_en',
-            'featured_image_alt_text_de'
+            'featured_image_alt_text_de',
+            'source_references'
         ],
         additionalProperties: false
     };
@@ -382,6 +501,12 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         throw new Error('OpenAI-Antwort enthält keinen gültigen Bild-Alt-Text.');
     }
 
+    const sourceReferences = normalizeSourceReferences(parsedResponse.source_references);
+
+    if (enableOpenAiWebSearch && sourceReferences.length === 0) {
+        throw new Error('OpenAI hat keine verwertbaren Webquellen zurückgegeben.');
+    }
+
     return {
         title,
         excerpt,
@@ -392,7 +517,8 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         selected_category_keys: normalizeSelectedCategoryKeys(parsedResponse.selected_category_keys),
         keyword_names: normalizeAiKeywordNames(parsedResponse.keyword_names),
         featured_image_prompt_en: featuredImagePrompt,
-        featured_image_alt_text_de: featuredImageAltText
+        featured_image_alt_text_de: featuredImageAltText,
+        source_references: sourceReferences
     };
 }
 
@@ -790,6 +916,45 @@ async function generateFeaturedImageWithOpenAi(rewrittenPost) {
         title: rewrittenPost.title,
         altText: rewrittenPost.featured_image_alt_text_de
     };
+}
+
+function normalizeSourceReferences(sourceReferences) {
+  if (!Array.isArray(sourceReferences)) {
+    return [];
+  }
+
+  const normalizedReferences = [];
+  const seenUrls = new Set();
+
+  for (const sourceReference of sourceReferences) {
+    const title = normalizeWhitespace(sourceReference?.title || '');
+    const url = normalizeWhitespace(sourceReference?.url || '');
+    const usedFor = normalizeWhitespace(sourceReference?.used_for || '');
+
+    if (!title || !url || !usedFor) {
+      continue;
+    }
+
+    if (!/^https?:\/\//i.test(url)) {
+      continue;
+    }
+
+    const normalizedUrlKey = url.toLowerCase();
+
+    if (seenUrls.has(normalizedUrlKey)) {
+      continue;
+    }
+
+    seenUrls.add(normalizedUrlKey);
+
+    normalizedReferences.push({
+      title: truncateToLength(title, 180),
+      url: truncateToLength(url, 500),
+      used_for: truncateToLength(usedFor, 300)
+    });
+  }
+
+  return normalizedReferences.slice(0, 8);
 }
 
 module.exports = {

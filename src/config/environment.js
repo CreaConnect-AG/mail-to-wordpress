@@ -13,6 +13,12 @@ const openAiImageQuality = process.env.OPENAI_IMAGE_QUALITY || 'high';
 const openAiImageOutputFormat = process.env.OPENAI_IMAGE_OUTPUT_FORMAT || 'jpeg';
 const enableFeaturedImageGeneration = String(process.env.ENABLE_FEATURED_IMAGE_GENERATION || 'false').toLowerCase() === 'true';
 
+const enableOpenAiWebSearch = String(process.env.ENABLE_OPENAI_WEB_SEARCH || 'true').toLowerCase() !== 'false';
+const openAiWebSearchContextSize = process.env.OPENAI_WEB_SEARCH_CONTEXT_SIZE || 'medium';
+const openAiWebSearchBlockedDomains = parseStringList(
+  process.env.OPENAI_WEB_SEARCH_BLOCKED_DOMAINS || 'wikipedia.org,reddit.com,quora.com'
+);
+
 const wordpressBaseUrl = removeTrailingSlash(process.env.WORDPRESS_BASE_URL || '');
 const wordpressUsername = process.env.WORDPRESS_USERNAME || '';
 const wordpressApplicationPassword = String(process.env.WORDPRESS_APPLICATION_PASSWORD || '').replace(/\s+/g, '');
@@ -28,6 +34,9 @@ module.exports = {
     openAiImageSize,
     openAiImageQuality,
     openAiImageOutputFormat,
+    enableOpenAiWebSearch,
+    openAiWebSearchContextSize,
+    openAiWebSearchBlockedDomains,
     enableFeaturedImageGeneration,
     wordpressBaseUrl,
     wordpressUsername,
