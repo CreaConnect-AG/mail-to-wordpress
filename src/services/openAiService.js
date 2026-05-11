@@ -536,18 +536,15 @@ function buildOriginalMailDeveloperInstruction() {
     const instructionParts = [
         'Du bist Redaktor für eine professionelle Schweizer Immobilien-Website.',
         'Deine Aufgabe ist nicht, den Beitrag umzuschreiben.',
-        'Titel, Lead und redaktioneller Beitragstext müssen exakt aus der gelieferten E-Mail übernommen werden.',
-        'Ändere keine Wörter, keine Zahlen, keine Satzzeichen und keine Reihenfolge innerhalb der ausgewählten Textteile.',
-        'Korrigiere keine Rechtschreibung und formuliere nichts schöner.',
-        'Erfinde keine Informationen und ergänze keinen neuen Inhalt.',
-        'Erkenne lediglich, welcher Teil der E-Mail der Titel ist, welcher Teil der Lead ist und welcher Teil der eigentliche Beitragstext ist.',
+        'Erkenne nur den Originaltitel, den Originallead, passende Kategorien, passende Stichwörter und einen Bildprompt.',
+        'Gib keinen vollständigen Beitragstext zurück.',
+        'Der eigentliche Beitragstext wird vom System direkt aus der Original-Mail übernommen.',
         'title muss exakt dem erkannten Titel aus subject oder source_text entsprechen.',
         'lead muss exakt einem passenden Lead oder Kurzbeschrieb aus source_text entsprechen.',
-        'content_text muss exakt dem eigentlichen Beitragstext aus source_text entsprechen.',
+        'Ändere beim Titel und Lead keine Wörter, keine Zahlen, keine Satzzeichen und keine Reihenfolge.',
+        'Korrigiere keine Rechtschreibung und formuliere nichts schöner.',
+        'Erfinde keine Informationen und ergänze keinen neuen Inhalt.',
         'Falls die E-Mail keinen klaren separaten Lead enthält, verwende den ersten sinnvollen Absatz nach dem Titel als lead.',
-        'Falls die E-Mail keinen klar getrennten Beitragstext enthält, verwende den gesamten relevanten redaktionellen Text ohne technische Footer, Abmeldehinweise oder interne Systemzeilen.',
-        'Nicht-redaktionelle technische Zeilen dürfen entfernt werden, aber der verbleibende redaktionelle Text darf nicht verändert werden.',
-        'Die entfernten technischen Teile gelten nicht als redaktioneller Beitragstext.',
         'Wähle zusätzlich passende Kategorien aus der Liste allowed_category_options.',
         `selected_category_keys muss zwischen ${minimumRequestedCategoryCountFromAi} und ${maximumRequestedCategoryCountFromAi} Einträge enthalten.`,
         'Verwende nur category keys aus allowed_category_options.',
@@ -585,11 +582,6 @@ function buildOriginalMailResponseSchema() {
                 minLength: 2,
                 maxLength: 1000
             },
-            content_text: {
-                type: 'string',
-                minLength: 2,
-                maxLength: 12000
-            },
             selected_category_keys: {
                 type: 'array',
                 items: {
@@ -623,7 +615,6 @@ function buildOriginalMailResponseSchema() {
         required: [
             'title',
             'lead',
-            'content_text',
             'selected_category_keys',
             'keyword_names',
             'featured_image_prompt_en',
@@ -715,7 +706,6 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
 function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
     const title = String(parsedResponse.title || '').trim();
     const lead = String(parsedResponse.lead || '').trim();
-    const contentText = normalizeLineEndingsForOriginalText(parsedResponse.content_text || '').trim();
 
     if (!title) {
         throw new Error('OpenAI-Antwort enthält keinen gültigen Originaltitel.');
@@ -723,10 +713,6 @@ function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
 
     if (!lead) {
         throw new Error('OpenAI-Antwort enthält keinen gültigen Originallead.');
-    }
-
-    if (!contentText) {
-        throw new Error('OpenAI-Antwort enthält keinen gültigen Originalinhalt.');
     }
 
     if (!isOriginalTextFromInput(title, sourceText, subject)) {
@@ -737,8 +723,14 @@ function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
         throw new Error('Der erkannte Lead wurde nicht exakt aus source_text übernommen.');
     }
 
-    if (!isOriginalTextFromInput(contentText, sourceText, subject)) {
-        throw new Error('Der erkannte Beitragstext wurde nicht aus source_text übernommen.');
+    const contentText = buildOriginalArticleTextFromSource({
+        sourceText,
+        title,
+        lead
+    });
+
+    if (!contentText) {
+        throw new Error('Aus der Original-Mail konnte kein Beitragstext extrahiert werden.');
     }
 
     const featuredImagePrompt = normalizeWhitespace(parsedResponse.featured_image_prompt_en || '');
@@ -765,6 +757,109 @@ function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
         featured_image_alt_text_de: featuredImageAltText,
         source_references: []
     };
+}
+
+function buildOriginalArticleTextFromSource({ sourceText, title, lead }) {
+    const sourceParagraphs = splitOriginalParagraphs(sourceText);
+
+    if (sourceParagraphs.length === 0) {
+        return '';
+    }
+
+    const titleIndex = findMatchingParagraphIndex(sourceParagraphs, title, 0);
+    const searchLeadFromIndex = titleIndex >= 0 ? titleIndex + 1 : 0;
+    const leadIndex = findMatchingParagraphIndex(sourceParagraphs, lead, searchLeadFromIndex);
+
+    let contentStartIndex = 0;
+
+    if (leadIndex >= 0) {
+        contentStartIndex = leadIndex + 1;
+    } else if (titleIndex >= 0) {
+        contentStartIndex = titleIndex + 1;
+    }
+
+    const contentParagraphs = sourceParagraphs
+        .slice(contentStartIndex)
+        .filter((paragraph) => !isTechnicalOriginalParagraph(paragraph));
+
+    if (contentParagraphs.length > 0) {
+        return contentParagraphs.join('\n\n').trim();
+    }
+
+    return sourceParagraphs
+        .filter((paragraph, index) => index !== titleIndex)
+        .filter((paragraph) => !isSameOriginalText(paragraph, lead))
+        .filter((paragraph) => !isTechnicalOriginalParagraph(paragraph))
+        .join('\n\n')
+        .trim();
+}
+
+function splitOriginalParagraphs(text) {
+    return normalizeLineEndingsForOriginalText(text)
+        .split(/\n\s*\n+/)
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean);
+}
+
+function findMatchingParagraphIndex(paragraphs, searchText, startIndex) {
+    const normalizedSearchText = normalizeWhitespace(searchText);
+
+    if (!normalizedSearchText) {
+        return -1;
+    }
+
+    for (let index = Math.max(0, startIndex || 0); index < paragraphs.length; index += 1) {
+        const normalizedParagraph = normalizeWhitespace(paragraphs[index]);
+
+        if (
+            normalizedParagraph === normalizedSearchText ||
+            normalizedParagraph.includes(normalizedSearchText)
+        ) {
+            return index;
+        }
+    }
+
+    return -1;
+}
+
+function isSameOriginalText(textA, textB) {
+    return normalizeWhitespace(textA) === normalizeWhitespace(textB);
+}
+
+function isTechnicalOriginalParagraph(paragraph) {
+    const normalizedParagraph = normalizeWhitespace(paragraph).toLowerCase();
+
+    if (!normalizedParagraph) {
+        return true;
+    }
+
+    if (/^https?:\/\/\S+$/i.test(normalizedParagraph)) {
+        return true;
+    }
+
+    const ignoredParagraphs = [
+        'newsfeed unsubscribe',
+        'unsubscribe',
+        'abmelden'
+    ];
+
+    if (ignoredParagraphs.includes(normalizedParagraph)) {
+        return true;
+    }
+
+    if (normalizedParagraph.startsWith('autor:')) {
+        return true;
+    }
+
+    if (normalizedParagraph.startsWith('quelle:')) {
+        return true;
+    }
+
+    if (normalizedParagraph.includes('the articles supplied are to be used exclusively')) {
+        return true;
+    }
+
+    return false;
 }
 
 function isOriginalTextFromInput(selectedText, sourceText, subject) {

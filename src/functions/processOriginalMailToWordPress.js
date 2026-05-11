@@ -151,15 +151,26 @@ function isAllowedSender(senderEmailAddress) {
 
 function buildOriginalSourceText(requestBody) {
     const textBody = normalizeLineEndings(String(requestBody.text_body || '')).trim();
+    const htmlBody = String(requestBody.html_body || '').trim();
 
-    if (textBody) {
+    if (textBody && !looksLikeHtml(textBody)) {
         return textBody;
     }
 
-    const plainTextFromHtml = htmlToPlainText(String(requestBody.html_body || ''));
+    if (htmlBody) {
+        const plainTextFromHtml = htmlToPlainTextForOriginalMail(htmlBody);
 
-    if (plainTextFromHtml) {
-        return normalizeWhitespace(plainTextFromHtml);
+        if (plainTextFromHtml) {
+            return plainTextFromHtml;
+        }
+    }
+
+    if (textBody && looksLikeHtml(textBody)) {
+        const plainTextFromTextBodyHtml = htmlToPlainTextForOriginalMail(textBody);
+
+        if (plainTextFromTextBodyHtml) {
+            return plainTextFromTextBodyHtml;
+        }
     }
 
     throw new Error('Es konnte kein verwertbarer Text aus der E-Mail gelesen werden.');
@@ -169,4 +180,34 @@ function normalizeLineEndings(text) {
     return String(text || '')
         .replace(/\r\n/g, '\n')
         .replace(/\r/g, '\n');
+}
+
+function looksLikeHtml(value) {
+    return /<\/?[a-z][\s\S]*>/i.test(String(value || ''));
+}
+
+function htmlToPlainTextForOriginalMail(htmlBody) {
+    return String(htmlBody || '')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n\n')
+        .replace(/<\/div>/gi, '\n\n')
+        .replace(/<\/h1>/gi, '\n\n')
+        .replace(/<\/h2>/gi, '\n\n')
+        .replace(/<\/h3>/gi, '\n\n')
+        .replace(/<\/li>/gi, '\n')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&#160;/gi, ' ')
+        .replace(/&amp;/gi, '&')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'")
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n[ \t]+/g, '\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
 }
