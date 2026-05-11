@@ -1,13 +1,14 @@
 const {
-  openAiApiKey,
-  openAiModel,
-  openAiImageModel,
-  openAiImageSize,
-  openAiImageQuality,
-  openAiImageOutputFormat,
-  enableOpenAiWebSearch,
-  openAiWebSearchContextSize,
-  openAiWebSearchBlockedDomains
+    openAiApiKey,
+    openAiModel,
+    openAiOriginalModel,
+    openAiImageModel,
+    openAiImageSize,
+    openAiImageQuality,
+    openAiImageOutputFormat,
+    enableOpenAiWebSearch,
+    openAiWebSearchContextSize,
+    openAiWebSearchBlockedDomains
 } = require('../config/environment');
 
 const {
@@ -101,6 +102,24 @@ async function rewriteMailWithOpenAi({ subject, from, sourceText }) {
     return enrichedSecondAttempt;
 }
 
+async function prepareOriginalMailWithOpenAi({ subject, from, sourceText }) {
+    const preparedOriginalMail = await requestOpenAiOriginalMailPreparation({
+        subject,
+        from,
+        sourceText
+    });
+
+    const normalizedOriginalPost = normalizeOriginalMailPost({
+        parsedResponse: preparedOriginalMail,
+        subject,
+        sourceText
+    });
+
+    return attachResolvedKeywords(
+        attachResolvedCategories(normalizedOriginalPost)
+    );
+}
+
 function shouldUseStrictLengthRules(sourceText) {
     return normalizeWhitespace(sourceText).length >= minimumSourceTextLengthForStrictRules;
 }
@@ -192,6 +211,76 @@ async function requestOpenAiRewrite({ subject, from, sourceText, forceStrongRewr
     }
 }
 
+async function requestOpenAiOriginalMailPreparation({ subject, from, sourceText }) {
+    const requestPayload = {
+        model: openAiOriginalModel,
+        input: [
+            {
+                role: 'developer',
+                content: [
+                    {
+                        type: 'input_text',
+                        text: buildOriginalMailDeveloperInstruction()
+                    }
+                ]
+            },
+            {
+                role: 'user',
+                content: [
+                    {
+                        type: 'input_text',
+                        text: JSON.stringify(
+                            {
+                                subject,
+                                from,
+                                source_text: sourceText,
+                                allowed_category_options: getAllowedCategoryOptionsForAi()
+                            },
+                            null,
+                            2
+                        )
+                    }
+                ]
+            }
+        ],
+        text: {
+            format: {
+                type: 'json_schema',
+                name: 'original_wordpress_post',
+                strict: true,
+                schema: buildOriginalMailResponseSchema()
+            }
+        }
+    };
+
+    const response = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${openAiApiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestPayload)
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenAI Fehler ${response.status}: ${errorText}`);
+    }
+
+    const responseBody = await response.json();
+    const outputText = extractOutputText(responseBody);
+
+    if (!outputText) {
+        throw new Error('OpenAI hat keinen auswertbaren Text zurückgegeben.');
+    }
+
+    try {
+        return JSON.parse(outputText);
+    } catch (error) {
+        throw new Error(`OpenAI hat kein valides JSON geliefert. Rohtext: ${outputText}`);
+    }
+}
+
 function buildWebSearchTool() {
     const webSearchTool = {
         type: 'web_search',
@@ -245,7 +334,7 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
 
     const instructionParts = [
         'Du bist Redaktor für eine professionelle Schweizer Immobilien-Website.',
-         `Aktuelles Datum für Recherche und Einordnung: ${currentDateText}.`,
+        `Aktuelles Datum für Recherche und Einordnung: ${currentDateText}.`,
         'Die Web-Recherche muss die aktuelle Informationslage zu diesem Datum berücksichtigen.',
         'Suche bevorzugt nach aktuellen Quellen und prüfe, ob Informationen noch gültig sind.',
         'Verwende keine alten Informationen als aktuelle Fakten, wenn neuere Quellen verfügbar sind.',
@@ -443,6 +532,107 @@ function buildResponseSchema({ useStrictLengthRules }) {
     };
 }
 
+function buildOriginalMailDeveloperInstruction() {
+    const instructionParts = [
+        'Du bist Redaktor für eine professionelle Schweizer Immobilien-Website.',
+        'Deine Aufgabe ist nicht, den Beitrag umzuschreiben.',
+        'Titel, Lead und redaktioneller Beitragstext müssen exakt aus der gelieferten E-Mail übernommen werden.',
+        'Ändere keine Wörter, keine Zahlen, keine Satzzeichen und keine Reihenfolge innerhalb der ausgewählten Textteile.',
+        'Korrigiere keine Rechtschreibung und formuliere nichts schöner.',
+        'Erfinde keine Informationen und ergänze keinen neuen Inhalt.',
+        'Erkenne lediglich, welcher Teil der E-Mail der Titel ist, welcher Teil der Lead ist und welcher Teil der eigentliche Beitragstext ist.',
+        'title muss exakt dem erkannten Titel aus subject oder source_text entsprechen.',
+        'lead muss exakt einem passenden Lead oder Kurzbeschrieb aus source_text entsprechen.',
+        'content_text muss exakt dem eigentlichen Beitragstext aus source_text entsprechen.',
+        'Falls die E-Mail keinen klaren separaten Lead enthält, verwende den ersten sinnvollen Absatz nach dem Titel als lead.',
+        'Falls die E-Mail keinen klar getrennten Beitragstext enthält, verwende den gesamten relevanten redaktionellen Text ohne technische Footer, Abmeldehinweise oder interne Systemzeilen.',
+        'Nicht-redaktionelle technische Zeilen dürfen entfernt werden, aber der verbleibende redaktionelle Text darf nicht verändert werden.',
+        'Die entfernten technischen Teile gelten nicht als redaktioneller Beitragstext.',
+        'Wähle zusätzlich passende Kategorien aus der Liste allowed_category_options.',
+        `selected_category_keys muss zwischen ${minimumRequestedCategoryCountFromAi} und ${maximumRequestedCategoryCountFromAi} Einträge enthalten.`,
+        'Verwende nur category keys aus allowed_category_options.',
+        'Wähle immer die unterste passende Ebene.',
+        'Wenn eine Unterkategorie passt, darf die Parent-Kategorie nicht zusätzlich gesetzt werden.',
+        'Bei eindeutig globalen Themen verwende im Regionenbaum ausschliesslich international.',
+        'Verwende bei globalen Themen nicht global, sondern international.',
+        'Erfinde keine category keys.',
+        `keyword_names muss mindestens ${minimumThematicKeywordCount} thematisch passende Stichwörter enthalten.`,
+        `keyword_names darf höchstens ${maximumRequestedKeywordCountFromAi} Einträge enthalten.`,
+        `Die fixen Stichwörter ${fixedKeywordNames.join(', ')} werden vom System ergänzt und dürfen nicht in keyword_names enthalten sein.`,
+        'Gib keine Duplikate in keyword_names aus.',
+        'featured_image_prompt_en muss in englischer Sprache formuliert sein.',
+        'featured_image_prompt_en muss eine realistische redaktionelle Bildidee für einen WordPress-Featured-Image-Header beschreiben.',
+        'featured_image_prompt_en soll fotografisch, glaubwürdig, modern und professionell wirken.',
+        'featured_image_prompt_en darf keine Logos, keinen lesbaren Text, keine Wasserzeichen, keine UI-Elemente, keine Infografiken und keinen Cartoon-Stil verlangen.',
+        'featured_image_alt_text_de muss einen kurzen, sachlichen deutschen Alt-Text für das Bild liefern.',
+        'Gib ausschliesslich valides JSON gemäss dem vorgegebenen Schema zurück.'
+    ];
+
+    return instructionParts.join(' ');
+}
+
+function buildOriginalMailResponseSchema() {
+    return {
+        type: 'object',
+        properties: {
+            title: {
+                type: 'string',
+                minLength: 2,
+                maxLength: 180
+            },
+            lead: {
+                type: 'string',
+                minLength: 2,
+                maxLength: 1000
+            },
+            content_text: {
+                type: 'string',
+                minLength: 2,
+                maxLength: 12000
+            },
+            selected_category_keys: {
+                type: 'array',
+                items: {
+                    type: 'string',
+                    enum: getAllowedCategoryKeysForSchemaEnum()
+                },
+                minItems: minimumRequestedCategoryCountFromAi,
+                maxItems: maximumRequestedCategoryCountFromAi
+            },
+            keyword_names: {
+                type: 'array',
+                items: {
+                    type: 'string',
+                    minLength: 2,
+                    maxLength: 40
+                },
+                minItems: minimumThematicKeywordCount,
+                maxItems: maximumRequestedKeywordCountFromAi
+            },
+            featured_image_prompt_en: {
+                type: 'string',
+                minLength: 30,
+                maxLength: 1200
+            },
+            featured_image_alt_text_de: {
+                type: 'string',
+                minLength: 10,
+                maxLength: 180
+            }
+        },
+        required: [
+            'title',
+            'lead',
+            'content_text',
+            'selected_category_keys',
+            'keyword_names',
+            'featured_image_prompt_en',
+            'featured_image_alt_text_de'
+        ],
+        additionalProperties: false
+    };
+}
+
 function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
     const title = truncateToLength(
         normalizeWhitespace(parsedResponse.title || ''),
@@ -520,6 +710,114 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         featured_image_alt_text_de: featuredImageAltText,
         source_references: sourceReferences
     };
+}
+
+function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
+    const title = String(parsedResponse.title || '').trim();
+    const lead = String(parsedResponse.lead || '').trim();
+    const contentText = normalizeLineEndingsForOriginalText(parsedResponse.content_text || '').trim();
+
+    if (!title) {
+        throw new Error('OpenAI-Antwort enthält keinen gültigen Originaltitel.');
+    }
+
+    if (!lead) {
+        throw new Error('OpenAI-Antwort enthält keinen gültigen Originallead.');
+    }
+
+    if (!contentText) {
+        throw new Error('OpenAI-Antwort enthält keinen gültigen Originalinhalt.');
+    }
+
+    if (!isOriginalTextFromInput(title, sourceText, subject)) {
+        throw new Error('Der erkannte Titel wurde nicht exakt aus subject oder source_text übernommen.');
+    }
+
+    if (!isOriginalTextFromInput(lead, sourceText, subject)) {
+        throw new Error('Der erkannte Lead wurde nicht exakt aus source_text übernommen.');
+    }
+
+    if (!isOriginalTextFromInput(contentText, sourceText, subject)) {
+        throw new Error('Der erkannte Beitragstext wurde nicht aus source_text übernommen.');
+    }
+
+    const featuredImagePrompt = normalizeWhitespace(parsedResponse.featured_image_prompt_en || '');
+    const featuredImageAltText = normalizeWhitespace(parsedResponse.featured_image_alt_text_de || '');
+
+    if (!featuredImagePrompt) {
+        throw new Error('OpenAI-Antwort enthält keinen gültigen Bildprompt.');
+    }
+
+    if (!featuredImageAltText) {
+        throw new Error('OpenAI-Antwort enthält keinen gültigen Bild-Alt-Text.');
+    }
+
+    return {
+        title,
+        excerpt: lead,
+        lead,
+        slug: sanitizeSlug(title),
+        content_html: buildOriginalContentHtml(contentText),
+        content_text: contentText,
+        selected_category_keys: normalizeSelectedCategoryKeys(parsedResponse.selected_category_keys),
+        keyword_names: normalizeAiKeywordNames(parsedResponse.keyword_names),
+        featured_image_prompt_en: featuredImagePrompt,
+        featured_image_alt_text_de: featuredImageAltText,
+        source_references: []
+    };
+}
+
+function isOriginalTextFromInput(selectedText, sourceText, subject) {
+    const normalizedSelectedText = normalizeWhitespace(selectedText);
+    const normalizedSourceText = normalizeWhitespace(sourceText);
+    const normalizedSubject = normalizeWhitespace(subject);
+
+    if (!normalizedSelectedText) {
+        return false;
+    }
+
+    if (
+        normalizedSourceText.includes(normalizedSelectedText) ||
+        normalizedSubject === normalizedSelectedText
+    ) {
+        return true;
+    }
+
+    const selectedLines = buildComparableOriginalLines(selectedText);
+    const sourceLines = buildComparableOriginalLines(sourceText);
+    const sourceLineSet = new Set(sourceLines);
+
+    if (selectedLines.length === 0) {
+        return false;
+    }
+
+    return selectedLines.every((line) => sourceLineSet.has(line));
+}
+
+function buildComparableOriginalLines(text) {
+    return String(text || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .split('\n')
+        .map((line) => normalizeWhitespace(line))
+        .filter(Boolean);
+}
+
+function buildOriginalContentHtml(contentText) {
+    const normalizedText = normalizeLineEndingsForOriginalText(contentText).trim();
+
+    return normalizedText
+        .split(/\n\s*\n+/)
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean)
+        .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
+        .join('\n');
+}
+
+function normalizeLineEndingsForOriginalText(text) {
+    return String(text || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n');
 }
 
 function tryAttachResolvedCategories(normalizedGeneratedPost) {
@@ -959,6 +1257,7 @@ function normalizeSourceReferences(sourceReferences) {
 
 module.exports = {
     rewriteMailWithOpenAi,
+    prepareOriginalMailWithOpenAi,
     shouldUseStrictLengthRules,
     generateFeaturedImageWithOpenAi
 };

@@ -5,7 +5,8 @@ const {
 } = require('../utils/textUtils');
 
 const openAiApiKey = process.env.OPENAI_API_KEY || '';
-const openAiModel = process.env.OPENAI_MODEL || 'gpt-5';
+const openAiModel = process.env.OPENAI_MODEL || 'gpt-5.5';
+const openAiOriginalModel = process.env.OPENAI_ORIGINAL_MODEL || openAiModel;
 
 const openAiImageModel = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5';
 const openAiImageSize = process.env.OPENAI_IMAGE_SIZE || '1536x1024';
@@ -30,6 +31,7 @@ const mailAllowedSenders = parseStringList(process.env.MAIL_ALLOWED_SENDERS || '
 module.exports = {
     openAiApiKey,
     openAiModel,
+    openAiOriginalModel,
     openAiImageModel,
     openAiImageSize,
     openAiImageQuality,
