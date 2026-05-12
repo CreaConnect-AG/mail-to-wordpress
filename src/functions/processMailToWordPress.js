@@ -152,15 +152,28 @@ function isAllowedSender(senderEmailAddress) {
 }
 
 function buildSourceText(requestBody) {
-    const plainTextFromRequest = normalizeWhitespace(String(requestBody.text_body || ''));
+    const plainTextFromRequest = normalizeSourceText(requestBody.text_body);
+
     if (plainTextFromRequest) {
-        return plainTextFromRequest.slice(0, 6000);
+        return plainTextFromRequest;
     }
 
     const plainTextFromHtml = htmlToPlainText(String(requestBody.html_body || ''));
+
     if (plainTextFromHtml) {
-        return plainTextFromHtml.slice(0, 6000);
+        return plainTextFromHtml;
     }
 
     throw new Error('Es konnte kein verwertbarer Text aus der E-Mail gelesen werden.');
+}
+
+function normalizeSourceText(text) {
+    return String(text || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .split('\n')
+        .map((line) => normalizeWhitespace(line))
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
 }
