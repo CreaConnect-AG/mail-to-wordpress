@@ -376,8 +376,11 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         `# Sprache und Stil
         Schreibe neutral, professionell, journalistisch und zugleich interessant.
         Schreibe sachlich, klar und gut lesbar.
-        Vermeide werbliche Sprache, PR-Floskeln und unkritische Formulierungen.
-        Gib keinen Werbetext, keine Spam-Phrasen, keine fremdsprachigen Fragmente, keine Sonderzeichenketten und keine irrelevanten Zusätze aus.
+        Der Beitrag soll wie ein eigenständiger redaktioneller Artikel wirken, nicht wie eine E-Mail-Zusammenfassung, Medienmitteilung oder PR-Meldung.
+        Beginne mit dem wichtigsten redaktionellen Punkt, einer relevanten Einordnung oder der stärksten Nachricht aus der Recherche.
+        Verwende kurze, klare Absätze mit nachvollziehbarer Gedankenführung.
+        Formuliere Zwischentitel kurz, sachlich und redaktionell.
+        Vermeide werbliche Sprache, PR-Floskeln, unkritische Formulierungen, Spam-Phrasen, fremdsprachige Fragmente, Sonderzeichenketten und irrelevante Zusätze.
         Vermeide Gedankenstriche als Stilmittel im gesamten zurückgegebenen Text.
         Im content_html ist höchstens ein einzelner Gedankenstrich erlaubt, und nur wenn er sprachlich wirklich notwendig ist.`,
 
@@ -398,13 +401,34 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Der Textauszug soll nicht nur die E-Mail zusammenfassen, sondern den redaktionellen Kern des neu recherchierten Beitrags wiedergeben.`,
 
         `# WordPress-Inhalt
-        content_html soll ein sauberer WordPress-Inhalt sein.
-        Verwende gültiges HTML, aber ohne <html> oder <body>.
-        Gib keinen Markdown-Codeblock aus.`,
+        content_html soll ein sauberer WordPress-Inhalt mit gültigem HTML sein.
+        Verwende kein <html>, kein <body> und keinen äusseren <div class="content">.
+        Gib keinen Markdown-Codeblock aus.
+
+        content_html muss mit einem normalen Fliesstext-Absatz beginnen.
+        Der erste Absatz muss das Format <p>Fliesstext</p> haben.
+        Wenn genügend Substanz vorhanden ist, sollen vor dem ersten Zwischentitel zwei normale Fliesstext-Absätze stehen.
+
+        Verwende für Zwischentitel keine Heading-Tags wie <h1>, <h2>, <h3>, <h4>, <h5> oder <h6>.
+        Zwischentitel müssen als Teil eines normalen Absatzes im Format <p><strong>Zwischentitel<br></strong>Fliesstext des Abschnitts.</p> ausgegeben werden.
+        Der Zwischentitel steht innerhalb von <strong>, der anschliessende Abschnittstext steht im selben <p>-Element nach dem <br>.
+        <strong> darf nur den Zwischentitel umfassen, nicht den ganzen Absatz.
+
+        Der typische Aufbau von content_html ist:
+        <p>Erster redaktioneller Einstiegsabsatz.</p>
+        <p>Zweiter einordnender Fliesstextabsatz.</p>
+        <p><strong>Kurzer Zwischentitel<br></strong>Fliesstext zum ersten Abschnitt.</p>
+        <p>Weiterer normaler Fliesstextabsatz.</p>
+        <p><strong>Kurzer Zwischentitel<br></strong>Fliesstext zum nächsten Abschnitt.</p>
+        <p>Abschliessender einordnender Fliesstextabsatz.</p>
+
+        Verwende keine leeren Absätze, keine mehrfachen <br>-Folgen und keine dekorativen HTML-Elemente.
+        Verwende Tabellen, Bullet-Listen oder nummerierte Listen nur, wenn sie für das Verständnis notwendig sind.`,
 
         `# Quellen
         Wenn Webquellen verwendet werden, soll content_html am Ende einen kurzen Quellenabschnitt mit passenden HTML-Links enthalten.
         Der Quellenabschnitt soll nur Quellen enthalten, die tatsächlich für zusätzliche Informationen im Beitrag verwendet wurden.
+        Der Quellenabschnitt darf keine Heading-Tags verwenden.
         Falls das JSON-Schema ein Feld source_references enthält, fülle es mit den wichtigsten tatsächlich verwendeten Webquellen.`,
 
         `# Kategorien
@@ -427,6 +451,7 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         featured_image_prompt_en muss eine realistische redaktionelle Bildidee für einen WordPress-Featured-Image-Header beschreiben.
         featured_image_prompt_en soll fotografisch, glaubwürdig, modern und professionell wirken.
         featured_image_prompt_en darf keine Logos, keinen lesbaren Text, keine Wasserzeichen, keine UI-Elemente, keine Infografiken und keinen Cartoon-Stil verlangen.
+        featured_image_prompt_en darf keine Schilder, Bautafeln, Strassenschilder, Plakate, Banner, Beschriftungen, Dokumente, Zeitungen, Bildschirme, Karten, Diagramme, Nummernschilder, Firmennamen, Markennamen, Produktnamen, Buchstaben oder Zahlen im Bild verlangen.
         featured_image_alt_text_de muss einen kurzen, sachlichen deutschen Alt-Text für das Bild liefern.`
     ];
 
@@ -1298,6 +1323,22 @@ function extractOutputText(responseBody) {
     return '';
 }
 
+function buildFeaturedImageGenerationPrompt(featuredImagePrompt) {
+    const normalizedFeaturedImagePrompt = normalizeWhitespace(featuredImagePrompt);
+
+    return [
+        'Create a realistic editorial photo for a Swiss real estate news website.',
+        'The image must look like a professional photographic header image, not an illustration.',
+        'Do not include any readable text anywhere in the image.',
+        'Do not include signs, street signs, construction signs, billboards, posters, plaques, banners, labels, documents, newspapers, screens, UI elements, maps, charts, infographics, license plates, logos, brand names, company names, watermarks, captions, typography, letters or numbers.',
+        'If the scene would naturally contain signage, use camera angle, distance, cropping or composition so that no text, symbols, logos, letters or numbers are visible or readable.',
+        'Prefer clean architecture, building facades without signage, construction sites without boards, city streets without readable shopfronts, interiors without screens, or abstract real estate context.',
+        'No cartoon style. No illustration. No 3D render. No artificial graphic design.',
+        '',
+        `Image idea: ${normalizedFeaturedImagePrompt}`
+    ].join('\n');
+}
+
 async function generateFeaturedImageWithOpenAi(rewrittenPost) {
     const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
@@ -1307,7 +1348,7 @@ async function generateFeaturedImageWithOpenAi(rewrittenPost) {
         },
         body: JSON.stringify({
             model: openAiImageModel,
-            prompt: rewrittenPost.featured_image_prompt_en,
+            prompt: buildFeaturedImageGenerationPrompt(rewrittenPost.featured_image_prompt_en),
             size: openAiImageSize,
             quality: openAiImageQuality,
             output_format: openAiImageOutputFormat,
