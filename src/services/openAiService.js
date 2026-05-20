@@ -38,9 +38,12 @@ const {
 
 const {
     getAllowedCategoryKeysForSchemaEnum,
+    getAllowedTopicCategoryKeysForSchemaEnum,
     getAllowedCategoryOptionsForAi,
     resolveSelectedCategories,
-    normalizeSelectedCategoryKeys
+    resolveBestCategory,
+    normalizeSelectedCategoryKeys,
+    normalizeBestCategoryKey
 } = require('./taxonomyService');
 
 const {
@@ -438,7 +441,8 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Wähle immer die unterste passende Ebene.
         Wenn eine Unterkategorie passt, darf die Parent-Kategorie nicht zusätzlich gesetzt werden.
         Bei eindeutig globalen Themen verwende im Regionenbaum ausschliesslich international und nicht global.
-        Erfinde keine category keys.`,
+        Erfinde keine category keys.
+        best_category_key muss genau einen category key als String enthalten. best_category_key muss aus allowed_category_options stammen, muss type "topic" haben und muss eine der gewählten selected_category_keys sein. Wähle dafür die fachlich wichtigste und passendste Themen-Kategorie. best_category_key darf niemals eine Region sein.`,
 
         `# Stichwörter
         keyword_names muss mindestens ${minimumThematicKeywordCount} thematisch passende Stichwörter enthalten.
@@ -529,6 +533,10 @@ function buildResponseSchema({ useStrictLengthRules }) {
                 minItems: minimumRequestedCategoryCountFromAi,
                 maxItems: maximumRequestedCategoryCountFromAi
             },
+            best_category_key: {
+                type: 'string',
+                enum: getAllowedTopicCategoryKeysForSchemaEnum()
+            },
             keyword_names: {
                 type: 'array',
                 items: {
@@ -583,6 +591,7 @@ function buildResponseSchema({ useStrictLengthRules }) {
             'slug',
             'content_html',
             'selected_category_keys',
+            'best_category_key',
             'keyword_names',
             'featured_image_prompt_en',
             'featured_image_alt_text_de',
@@ -622,7 +631,11 @@ function buildOriginalMailDeveloperInstruction() {
         'featured_image_prompt_en soll fotografisch, glaubwürdig, modern und professionell wirken.',
         'featured_image_prompt_en darf keine Logos, keinen lesbaren Text, keine Wasserzeichen, keine UI-Elemente, keine Infografiken und keinen Cartoon-Stil verlangen.',
         'featured_image_alt_text_de muss einen kurzen, sachlichen deutschen Alt-Text für das Bild liefern.',
-        'Gib ausschliesslich valides JSON gemäss dem vorgegebenen Schema zurück.'
+        'best_category_key muss genau einen category key als String enthalten.',
+        'best_category_key muss aus allowed_category_options stammen, muss type "topic" haben und muss eine der gewählten selected_category_keys sein.',
+        'Wähle dafür die fachlich wichtigste und passendste Themen-Kategorie.',
+        'best_category_key darf niemals eine Region sein.',
+        'Gib ausschliesslich valides JSON gemäss dem vorgegebenen Schema zurück.',
     ];
 
     return instructionParts.join(' ');
@@ -651,6 +664,10 @@ function buildOriginalMailResponseSchema() {
                 minItems: minimumRequestedCategoryCountFromAi,
                 maxItems: maximumRequestedCategoryCountFromAi
             },
+            best_category_key: {
+                type: 'string',
+                enum: getAllowedTopicCategoryKeysForSchemaEnum()
+            },
             keyword_names: {
                 type: 'array',
                 items: {
@@ -676,6 +693,7 @@ function buildOriginalMailResponseSchema() {
             'title',
             'lead',
             'selected_category_keys',
+            'best_category_key',
             'keyword_names',
             'featured_image_prompt_en',
             'featured_image_alt_text_de'
@@ -756,6 +774,7 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         content_html: contentHtml,
         content_text: contentText,
         selected_category_keys: normalizeSelectedCategoryKeys(parsedResponse.selected_category_keys),
+        best_category_key: normalizeBestCategoryKey(parsedResponse.best_category_key),
         keyword_names: normalizeAiKeywordNames(parsedResponse.keyword_names),
         featured_image_prompt_en: featuredImagePrompt,
         featured_image_alt_text_de: featuredImageAltText,
@@ -812,6 +831,7 @@ function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
         content_html: buildOriginalContentHtml(contentText),
         content_text: contentText,
         selected_category_keys: normalizeSelectedCategoryKeys(parsedResponse.selected_category_keys),
+        best_category_key: normalizeBestCategoryKey(parsedResponse.best_category_key),
         keyword_names: normalizeAiKeywordNames(parsedResponse.keyword_names),
         featured_image_prompt_en: featuredImagePrompt,
         featured_image_alt_text_de: featuredImageAltText,
@@ -976,27 +996,38 @@ function normalizeLineEndingsForOriginalText(text) {
 }
 
 function tryAttachResolvedCategories(normalizedGeneratedPost) {
-    try {
-        return attachResolvedCategories(normalizedGeneratedPost);
-    } catch (error) {
-        return {
-            ...normalizedGeneratedPost,
-            selected_category_titles: [],
-            category_ids: [],
-            category_resolution_error: error.message
-        };
-    }
+  try {
+    return attachResolvedCategories(normalizedGeneratedPost);
+  } catch (error) {
+    return {
+      ...normalizedGeneratedPost,
+      selected_category_titles: [],
+      category_ids: [],
+      best_category_key: '',
+      best_category_title: '',
+      best_category_wordpress_id: null,
+      category_resolution_error: error.message
+    };
+  }
 }
 
 function attachResolvedCategories(normalizedGeneratedPost) {
-    const resolvedCategories = resolveSelectedCategories(normalizedGeneratedPost.selected_category_keys);
+  const resolvedCategories = resolveSelectedCategories(normalizedGeneratedPost.selected_category_keys);
 
-    return {
-        ...normalizedGeneratedPost,
-        selected_category_keys: resolvedCategories.selectedKeys,
-        selected_category_titles: resolvedCategories.selectedTitles,
-        category_ids: resolvedCategories.wordpressCategoryIds
-    };
+  const resolvedBestCategory = resolveBestCategory(
+    normalizedGeneratedPost.best_category_key,
+    resolvedCategories.selectedKeys
+  );
+
+  return {
+    ...normalizedGeneratedPost,
+    selected_category_keys: resolvedCategories.selectedKeys,
+    selected_category_titles: resolvedCategories.selectedTitles,
+    category_ids: resolvedCategories.wordpressCategoryIds,
+    best_category_key: resolvedBestCategory.key,
+    best_category_title: resolvedBestCategory.title,
+    best_category_wordpress_id: resolvedBestCategory.wordpressId
+  };
 }
 
 function tryAttachResolvedKeywords(normalizedGeneratedPost) {

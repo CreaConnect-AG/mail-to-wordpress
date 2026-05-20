@@ -4,7 +4,8 @@ const {
     wordpressApplicationPassword,
     wordpressDefaultStatus,
     wordpressDefaultCategoryIds,
-    wordpressAcfLeadFieldName
+    wordpressAcfLeadFieldName,
+    wordpressAcfBestCategoryFieldName
 } = require('../config/environment');
 
 const {
@@ -69,6 +70,25 @@ async function createWordPressDraft(rewrittenPost) {
 
         if (!acfUpdateSucceeded) {
             throw new Error(`Der WordPress-Beitrag wurde erstellt, aber das ACF-Feld "${wordpressAcfLeadFieldName}" konnte nicht gesetzt werden.`);
+        }
+    }
+
+    if (wordpressAcfBestCategoryFieldName) {
+        const bestCategoryFieldValue = rewrittenPost.best_category_title || '';
+
+        if (!bestCategoryFieldValue) {
+            throw new Error('Der WordPress-Beitrag wurde erstellt, aber es wurde keine beste Kategorie ermittelt.');
+        }
+
+        const acfBestCategoryUpdateSucceeded = await updateWordPressAcfField({
+            postId: createdPost.id,
+            fieldName: wordpressAcfBestCategoryFieldName,
+            fieldValue: bestCategoryFieldValue,
+            authorizationHeader
+        });
+
+        if (!acfBestCategoryUpdateSucceeded) {
+            throw new Error(`Der WordPress-Beitrag wurde erstellt, aber das ACF-Feld "${wordpressAcfBestCategoryFieldName}" konnte nicht gesetzt werden.`);
         }
     }
 

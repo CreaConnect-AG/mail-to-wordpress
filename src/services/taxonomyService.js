@@ -11,6 +11,12 @@ function getAllowedCategoryKeysForSchemaEnum() {
     return selectableTaxonomyEntries.map((entry) => entry.key);
 }
 
+function getAllowedTopicCategoryKeysForSchemaEnum() {
+    return selectableTaxonomyEntries
+        .filter((entry) => entry.type === 'topic')
+        .map((entry) => entry.key);
+}
+
 function getAllowedCategoryOptionsForAi() {
     return selectableTaxonomyEntries.map((entry) => {
         return {
@@ -124,9 +130,48 @@ function buildTaxonomyPath(key) {
     return titleParts.join(' > ');
 }
 
+function normalizeBestCategoryKey(bestCategoryKey) {
+  return String(bestCategoryKey || '').trim().toLowerCase();
+}
+
+function resolveBestCategory(bestCategoryKey, finalSelectedCategoryKeys) {
+    const normalizedBestCategoryKey = normalizeBestCategoryKey(bestCategoryKey);
+
+    if (!normalizedBestCategoryKey) {
+        throw new Error('OpenAI hat keine beste Kategorie geliefert.');
+    }
+
+    const taxonomyEntry = taxonomyEntryMap[normalizedBestCategoryKey];
+
+    if (!taxonomyEntry || !taxonomyEntry.selectable) {
+        throw new Error(`Ungültige beste Kategorie von OpenAI: ${normalizedBestCategoryKey}`);
+    }
+
+    if (taxonomyEntry.type !== 'topic') {
+        throw new Error(`Beste Kategorie "${normalizedBestCategoryKey}" ist keine Topic-Kategorie.`);
+    }
+
+    if (
+        Array.isArray(finalSelectedCategoryKeys) &&
+        finalSelectedCategoryKeys.length > 0 &&
+        !finalSelectedCategoryKeys.includes(normalizedBestCategoryKey)
+    ) {
+        throw new Error(`Beste Kategorie "${normalizedBestCategoryKey}" ist nicht in den finalen Kategorien enthalten.`);
+    }
+
+    return {
+        key: normalizedBestCategoryKey,
+        title: taxonomyEntry.title,
+        wordpressId: taxonomyEntry.wordpressId
+    };
+}
+
 module.exports = {
     getAllowedCategoryKeysForSchemaEnum,
+    getAllowedTopicCategoryKeysForSchemaEnum,
     getAllowedCategoryOptionsForAi,
     resolveSelectedCategories,
-    normalizeSelectedCategoryKeys
+    resolveBestCategory,
+    normalizeSelectedCategoryKeys,
+    normalizeBestCategoryKey
 };
