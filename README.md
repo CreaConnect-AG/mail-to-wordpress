@@ -224,7 +224,7 @@ Comma-separated list of allowed sender email addresses.
 
 Example:
 
-    no-reply@ai.argusdatainsights.com,newsletter@anbieter.ch
+    newsletter@anbieter.ch
 
 If empty, all senders are accepted.
 
