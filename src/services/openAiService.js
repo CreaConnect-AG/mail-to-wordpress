@@ -71,7 +71,8 @@ async function rewriteMailWithOpenAi({ subject, from, sourceText }) {
         originalSubject: subject,
         sourceText,
         rewrittenPost: enrichedFirstAttempt,
-        useStrictLengthRules
+        useStrictLengthRules,
+        includeEditorialFocusValidation: true
     });
 
     if (!needsSecondRewriteAttempt(firstValidationErrors)) {
@@ -95,7 +96,8 @@ async function rewriteMailWithOpenAi({ subject, from, sourceText }) {
         originalSubject: subject,
         sourceText,
         rewrittenPost: enrichedSecondAttempt,
-        useStrictLengthRules
+        useStrictLengthRules,
+        includeEditorialFocusValidation: false
     });
 
     if (secondValidationErrors.length > 0) {
@@ -376,6 +378,14 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Vermeide auffällige Formulierungsmuster, Satzanfänge und Standardwendungen aus der Vorlage und ersetze sie durch eigenständige journalistische Formulierungen.
         Wenn der Input zu kurz ist, nutze die Web-Recherche für sinnvollen Kontext, aber fülle den Beitrag nicht künstlich mit irrelevanten Informationen auf.`,
 
+        `# Redaktioneller Fokus
+        Entscheide vor dem Schreiben, welcher einzelne redaktionelle Kern den Beitrag trägt. Der Beitrag soll aus einer klaren Hauptaussage heraus entstehen, nicht aus einer vollständigen Abarbeitung aller Informationen im Input.
+        Nutze weitere Informationen nur, wenn sie die Hauptaussage erklären, belegen, einordnen oder für die Zielgruppe relevant machen. Lasse Nebenaspekte weg, wenn sie zwar interessant sind, aber den Beitrag thematisch verbreitern, ohne den Kern zu stärken.
+        Der Artikel soll nach dem Lesen in einem Satz zusammenfassbar sein. Titel, Auszug, Einstieg, Zwischentitel und Schluss müssen auf denselben redaktionellen Kern einzahlen.
+        Wenn der Input mehrere mögliche Themen enthält, wähle den stärksten Nachrichtenwert. Bevorzuge den Aspekt, der aktuell, überprüfbar, konkret und für die Zielgruppe am relevantesten ist.
+        Die Zielgruppe ist eine professionelle Schweizer Immobilien-Website. Stelle den Bezug zur Immobilienwirtschaft, zum Immobilienmarkt, zu Bau, Planung, Finanzierung, Nutzung, Bewirtschaftung, Unternehmen oder Standortentwicklung her, wenn dieser Bezug sachlich vorhanden ist. Erfinde keinen Immobilienbezug, wenn er aus Input und Recherche nicht belastbar hervorgeht.
+        Vermeide eine Aneinanderreihung gleichwertiger Einzelthemen. Der Beitrag darf mehrere Aspekte enthalten, aber sie müssen klar hierarchisiert sein: ein Hauptfokus, wenige stützende Aspekte, keine lose Materialsammlung.`,
+
         `# Sprache und Stil
         Schreibe neutral, professionell, journalistisch und zugleich interessant.
         Schreibe sachlich, klar und gut lesbar.
@@ -462,14 +472,12 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
     if (forceStrongRewrite) {
         instructionSections.push(
             `# Zusätzliche Vorgaben für eine stärkere Neufassung
-            Achte besonders darauf, dass Formulierungen, Satzbau, Einstieg und Aufbau klar vom Original abweichen.
-            Wenn ein Titel, ein Auszug, ein Absatz oder eine Passage dem Input zu ähnlich ist, formuliere sie vollständig neu.
-            Wenn der Beitrag in Aufbau oder Reihenfolge noch zu nahe an der Vorlage ist, ordne den Inhalt neu.
-            Wenn der Beitrag zu stark nach einer E-Mail-Zusammenfassung klingt, schreibe ihn stärker als eigenständigen redaktionellen Artikel.
-            Wenn die Web-Recherche einen besseren redaktionellen Fokus liefert als der ursprüngliche E-Mail-Aufbau, richte den Beitrag auf diesen Fokus aus.
-            Wenn Kategorien zu allgemein sind, wähle passendere und spezifischere Kategorien aus der Liste.
-            Wenn Stichwörter zu allgemein sind, wähle passendere und thematischere Stichwörter.
-            Wenn der Titel einen Firmennamen, Markennamen, Produktnamen, Doppelpunkt oder Gedankenstrich enthält, formuliere ihn vollständig neu.`
+            Der neue Entwurf muss stärker fokussiert sein als ein normaler Rewrite. Prüfe vor dem Schreiben, ob der Beitrag zu viele gleichwertige Themenstränge enthält.
+            Wenn mehrere Themen möglich sind, wähle den redaktionell stärksten Kern und ordne alle weiteren Informationen diesem Kern unter. Entferne Informationen, die den Beitrag nur verbreitern.
+            Der Beitrag soll nicht wie eine Zusammenfassung der E-Mail wirken. Er soll wie ein eigenständiger Artikel wirken, der eine klare Auswahl trifft, gewichtet und einordnet.
+            Formuliere Titel, Auszug und Einstieg so, dass sofort erkennbar ist, worum es im Kern geht. Verwende keine generischen Titel, die auch zu vielen anderen Artikeln passen würden.
+            Nutze Web-Recherche nicht als Anlass, möglichst viele Zusatzinformationen einzubauen. Nutze sie zur Prüfung, Einordnung und Verdichtung.
+            Wenn der erste Entwurf mehrere mögliche Kernaussagen hätte, ist der zweite Entwurf zu fokussieren, bis eine Hauptaussage dominiert.`
         );
     }
 
@@ -488,6 +496,15 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
     }
 
     instructionSections.push(
+        `# Redaktionelle Qualitätsfelder
+        Fülle editorial_focus mit der zentralen Hauptaussage des Beitrags in einem Satz.
+        Fülle editorial_relevance mit der Begründung, warum dieser Beitrag für die Zielgruppe relevant ist. Wenn kein starker Immobilienbezug vorhanden ist, formuliere die Relevanz allgemeiner und sachlich.
+        Fülle supporting_aspects mit höchstens drei Aspekten, die den redaktionellen Fokus direkt stützen.
+        Fülle omitted_aspects mit wichtigen Input- oder Rechercheaspekten, die bewusst nicht oder nur sehr knapp verwendet wurden, weil sie den Beitrag sonst thematisch überladen würden.
+        Diese Qualitätsfelder dienen der internen Prüfung. content_html darf sie nicht als sichtbare Liste oder Meta-Erklärung ausgeben.`
+    );
+
+    instructionSections.push(
         `# Ausgabe
         Gib ausschliesslich valides JSON gemäss dem vorgegebenen Schema zurück.`
     );
@@ -496,109 +513,143 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
 }
 
 function buildResponseSchema({ useStrictLengthRules }) {
-    const excerptSchema = {
+  const excerptSchema = {
+    type: 'string',
+    maxLength: maximumExcerptLength
+  };
+
+  const contentHtmlSchema = {
+    type: 'string',
+    maxLength: maximumContentHtmlLength
+  };
+
+  if (useStrictLengthRules) {
+    excerptSchema.minLength = minimumExcerptLength;
+    contentHtmlSchema.minLength = minimumContentTextLength;
+  }
+
+  return {
+    type: 'object',
+    properties: {
+      title: {
         type: 'string',
-        maxLength: maximumExcerptLength
-    };
-
-    const contentHtmlSchema = {
+        maxLength: maximumTitleLength
+      },
+      excerpt: excerptSchema,
+      slug: {
         type: 'string',
-        maxLength: maximumContentHtmlLength
-    };
-
-    if (useStrictLengthRules) {
-        excerptSchema.minLength = minimumExcerptLength;
-        contentHtmlSchema.minLength = minimumContentTextLength;
-    }
-
-    return {
-        type: 'object',
-        properties: {
-            title: {
-                type: 'string',
-                maxLength: maximumTitleLength
-            },
-            excerpt: excerptSchema,
-            slug: {
-                type: 'string',
-                maxLength: 80
-            },
-            content_html: contentHtmlSchema,
-            selected_category_keys: {
-                type: 'array',
-                items: {
-                    type: 'string',
-                    enum: getAllowedCategoryKeysForSchemaEnum()
-                },
-                minItems: minimumRequestedCategoryCountFromAi,
-                maxItems: maximumRequestedCategoryCountFromAi
-            },
-            best_category_key: {
-                type: 'string',
-                enum: getAllowedTopicCategoryKeysForSchemaEnum()
-            },
-            keyword_names: {
-                type: 'array',
-                items: {
-                    type: 'string',
-                    minLength: 2,
-                    maxLength: 40
-                },
-                minItems: minimumThematicKeywordCount,
-                maxItems: maximumRequestedKeywordCountFromAi
-            },
-            featured_image_prompt_en: {
-                type: 'string',
-                minLength: 30,
-                maxLength: 1200
-            },
-            featured_image_alt_text_de: {
-                type: 'string',
-                minLength: 10,
-                maxLength: 180
-            },
-            source_references: {
-                type: 'array',
-                items: {
-                    type: 'object',
-                    properties: {
-                        title: {
-                            type: 'string',
-                            minLength: 2,
-                            maxLength: 180
-                        },
-                        url: {
-                            type: 'string',
-                            minLength: 10,
-                            maxLength: 500
-                        },
-                        used_for: {
-                            type: 'string',
-                            minLength: 10,
-                            maxLength: 300
-                        }
-                    },
-                    required: ['title', 'url', 'used_for'],
-                    additionalProperties: false
-                },
-                minItems: enableOpenAiWebSearch ? 1 : 0,
-                maxItems: 8
-            }
+        maxLength: 80
+      },
+      content_html: contentHtmlSchema,
+      selected_category_keys: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: getAllowedCategoryKeysForSchemaEnum()
         },
-        required: [
-            'title',
-            'excerpt',
-            'slug',
-            'content_html',
-            'selected_category_keys',
-            'best_category_key',
-            'keyword_names',
-            'featured_image_prompt_en',
-            'featured_image_alt_text_de',
-            'source_references'
-        ],
-        additionalProperties: false
-    };
+        minItems: minimumRequestedCategoryCountFromAi,
+        maxItems: maximumRequestedCategoryCountFromAi
+      },
+      best_category_key: {
+        type: 'string',
+        enum: getAllowedTopicCategoryKeysForSchemaEnum()
+      },
+      keyword_names: {
+        type: 'array',
+        items: {
+          type: 'string',
+          minLength: 2,
+          maxLength: 40
+        },
+        minItems: minimumThematicKeywordCount,
+        maxItems: maximumRequestedKeywordCountFromAi
+      },
+      featured_image_prompt_en: {
+        type: 'string',
+        minLength: 30,
+        maxLength: 1200
+      },
+      featured_image_alt_text_de: {
+        type: 'string',
+        minLength: 10,
+        maxLength: 180
+      },
+      source_references: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            title: {
+              type: 'string',
+              minLength: 2,
+              maxLength: 180
+            },
+            url: {
+              type: 'string',
+              minLength: 10,
+              maxLength: 500
+            },
+            used_for: {
+              type: 'string',
+              minLength: 10,
+              maxLength: 300
+            }
+          },
+          required: ['title', 'url', 'used_for'],
+          additionalProperties: false
+        },
+        minItems: enableOpenAiWebSearch ? 1 : 0,
+        maxItems: 8
+      },
+      editorial_focus: {
+        type: 'string',
+        minLength: 20,
+        maxLength: 220
+      },
+      editorial_relevance: {
+        type: 'string',
+        minLength: 20,
+        maxLength: 300
+      },
+      supporting_aspects: {
+        type: 'array',
+        items: {
+          type: 'string',
+          minLength: 5,
+          maxLength: 160
+        },
+        minItems: 1,
+        maxItems: 3
+      },
+      omitted_aspects: {
+        type: 'array',
+        items: {
+          type: 'string',
+          minLength: 5,
+          maxLength: 160
+        },
+        minItems: 0,
+        maxItems: 5
+      }
+    },
+    required: [
+      'title',
+      'excerpt',
+      'slug',
+      'content_html',
+      'selected_category_keys',
+      'best_category_key',
+      'keyword_names',
+      'featured_image_prompt_en',
+      'featured_image_alt_text_de',
+      'source_references',
+      'editorial_focus',
+      'editorial_relevance',
+      'supporting_aspects',
+      'omitted_aspects'
+    ],
+    additionalProperties: false
+  };
 }
 
 function buildOriginalMailDeveloperInstruction() {
@@ -778,8 +829,23 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         keyword_names: normalizeAiKeywordNames(parsedResponse.keyword_names),
         featured_image_prompt_en: featuredImagePrompt,
         featured_image_alt_text_de: featuredImageAltText,
-        source_references: sourceReferences
+        source_references: sourceReferences,
+        editorial_focus: normalizeWhitespace(parsedResponse.editorial_focus || ''),
+        editorial_relevance: normalizeWhitespace(parsedResponse.editorial_relevance || ''),
+        supporting_aspects: normalizeEditorialAspectList(parsedResponse.supporting_aspects),
+        omitted_aspects: normalizeEditorialAspectList(parsedResponse.omitted_aspects)
     };
+}
+
+function normalizeEditorialAspectList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => normalizeWhitespace(entry))
+    .filter(Boolean)
+    .slice(0, 5);
 }
 
 function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
@@ -1091,51 +1157,133 @@ function isTooCloseToSource(sourceText, generatedText) {
     return false;
 }
 
-function buildRewriteValidationErrors({ originalSubject, sourceText, rewrittenPost, useStrictLengthRules }) {
-    const validationErrors = [];
+function buildRewriteValidationErrors({
+  originalSubject,
+  sourceText,
+  rewrittenPost,
+  useStrictLengthRules,
+  includeEditorialFocusValidation = false
+}) {
+  const validationErrors = [];
 
-    if (useStrictLengthRules && rewrittenPost.content_text.length < minimumContentTextLength) {
-        validationErrors.push(`OpenAI-Inhalt ist zu kurz. Aktuell: ${rewrittenPost.content_text.length} Zeichen.`);
-    }
+  if (useStrictLengthRules && rewrittenPost.content_text.length < minimumContentTextLength) {
+    validationErrors.push(`OpenAI-Inhalt ist zu kurz.
+Aktuell: ${rewrittenPost.content_text.length} Zeichen.`);
+  }
 
-    if (rewrittenPost.title.includes(':')) {
-        validationErrors.push('OpenAI-Titel enthält einen Doppelpunkt.');
-    }
+  if (rewrittenPost.title.includes(':')) {
+    validationErrors.push('OpenAI-Titel enthält einen Doppelpunkt.');
+  }
 
-    if (containsDashLikeCharacterInTitle(rewrittenPost.title)) {
-        validationErrors.push('OpenAI-Titel enthält einen Gedankenstrich oder Bindestrich.');
-    }
+  if (containsDashLikeCharacterInTitle(rewrittenPost.title)) {
+    validationErrors.push('OpenAI-Titel enthält einen Gedankenstrich oder Bindestrich.');
+  }
 
-    if (isTitleTooCloseToSubject(originalSubject, rewrittenPost.title)) {
-        validationErrors.push('OpenAI-Titel ist dem Originaltitel zu ähnlich.');
-    }
+  if (isTitleTooCloseToSubject(originalSubject, rewrittenPost.title)) {
+    validationErrors.push('OpenAI-Titel ist dem Originaltitel zu ähnlich.');
+  }
 
-    const dashStyleCountInContent = countDashStyleOccurrences(rewrittenPost.content_text);
-    if (dashStyleCountInContent > 1) {
-        validationErrors.push(`OpenAI-Inhalt enthält zu viele Gedankenstriche. Aktuell: ${dashStyleCountInContent}.`);
-    }
+  const dashStyleCountInContent = countDashStyleOccurrences(rewrittenPost.content_text);
 
-    if (isTooCloseToSource(sourceText, rewrittenPost.content_text)) {
-        validationErrors.push('OpenAI-Text ist noch zu nah am Originaltext.');
-    }
+  if (dashStyleCountInContent > 1) {
+    validationErrors.push(`OpenAI-Inhalt enthält zu viele Gedankenstriche.
+Aktuell: ${dashStyleCountInContent}.`);
+  }
 
-    if (rewrittenPost.category_resolution_error) {
-        validationErrors.push(rewrittenPost.category_resolution_error);
-    }
+  if (isTooCloseToSource(sourceText, rewrittenPost.content_text)) {
+    validationErrors.push('OpenAI-Text ist noch zu nah am Originaltext.');
+  }
 
-    if (rewrittenPost.keyword_resolution_error) {
-        validationErrors.push(rewrittenPost.keyword_resolution_error);
-    }
+  if (rewrittenPost.category_resolution_error) {
+    validationErrors.push(rewrittenPost.category_resolution_error);
+  }
 
-    if (!Array.isArray(rewrittenPost.category_ids) || rewrittenPost.category_ids.length < minimumSelectedCategoryCount) {
-        validationErrors.push(`Es wurden weniger als ${minimumSelectedCategoryCount} finale Kategorien ermittelt.`);
-    }
+  if (rewrittenPost.keyword_resolution_error) {
+    validationErrors.push(rewrittenPost.keyword_resolution_error);
+  }
 
-    if (!Array.isArray(rewrittenPost.thematic_keyword_names) || rewrittenPost.thematic_keyword_names.length < minimumThematicKeywordCount) {
-        validationErrors.push(`Es wurden weniger als ${minimumThematicKeywordCount} thematische Stichwörter ermittelt.`);
-    }
+  if (!Array.isArray(rewrittenPost.category_ids) || rewrittenPost.category_ids.length < minimumSelectedCategoryCount) {
+    validationErrors.push(`Es wurden weniger als ${minimumSelectedCategoryCount} finale Kategorien ermittelt.`);
+  }
 
-    return validationErrors;
+  if (!Array.isArray(rewrittenPost.thematic_keyword_names) || rewrittenPost.thematic_keyword_names.length < minimumThematicKeywordCount) {
+    validationErrors.push(`Es wurden weniger als ${minimumThematicKeywordCount} thematische Stichwörter ermittelt.`);
+  }
+
+  if (includeEditorialFocusValidation) {
+    validationErrors.push(...buildEditorialFocusValidationErrors(rewrittenPost));
+  }
+
+  return validationErrors;
+}
+
+function buildEditorialFocusValidationErrors(rewrittenPost) {
+  const validationErrors = [];
+
+  const editorialFocus = normalizeWhitespace(rewrittenPost.editorial_focus || '');
+  const editorialRelevance = normalizeWhitespace(rewrittenPost.editorial_relevance || '');
+  const supportingAspects = Array.isArray(rewrittenPost.supporting_aspects)
+    ? rewrittenPost.supporting_aspects
+    : [];
+
+  if (editorialFocus.length < 20) {
+    validationErrors.push('OpenAI hat keinen klaren redaktionellen Fokus geliefert.');
+  }
+
+  if (editorialRelevance.length < 20) {
+    validationErrors.push('OpenAI hat keine klare redaktionelle Relevanz geliefert.');
+  }
+
+  if (supportingAspects.length > 3) {
+    validationErrors.push('OpenAI verwendet zu viele stützende Aspekte.');
+  }
+
+  if (hasGenericEditorialTitle(rewrittenPost.title)) {
+    validationErrors.push('OpenAI-Titel ist zu allgemein und gibt keinen klaren Hauptwinkel vor.');
+  }
+
+  if (!doesTextReflectEditorialFocus(rewrittenPost)) {
+    validationErrors.push('OpenAI-Inhalt folgt dem angegebenen redaktionellen Fokus nicht klar genug.');
+  }
+
+  return validationErrors.slice(0, 1);
+}
+
+function hasGenericEditorialTitle(title) {
+  const genericPatterns = [
+    /\bim fokus\b/i,
+    /\brückt ins zentrum\b/i,
+    /\bmit folgen\b/i,
+    /\bvor veränderungen\b/i,
+    /\bim wandel\b/i,
+    /\bneue dynamik\b/i,
+    /\bbranche reagiert\b/i
+  ];
+
+  return genericPatterns.some((pattern) => pattern.test(title));
+}
+
+function doesTextReflectEditorialFocus(rewrittenPost) {
+  const editorialFocusWords = extractMeaningfulComparisonWords(
+    normalizeComparisonText(rewrittenPost.editorial_focus || '')
+  );
+
+  const visibleText = normalizeComparisonText(
+    [
+      rewrittenPost.title,
+      rewrittenPost.excerpt,
+      rewrittenPost.content_text
+    ].join(' ')
+  );
+
+  if (editorialFocusWords.length < 3 || !visibleText) {
+    return true;
+  }
+
+  const visibleWords = new Set(visibleText.split(' ').filter(Boolean));
+  const matchingWords = editorialFocusWords.filter((word) => visibleWords.has(word));
+
+  return matchingWords.length / editorialFocusWords.length >= 0.35;
 }
 
 function finalizeExcerptText(excerpt) {
