@@ -98,7 +98,13 @@ app.http('processMailToWordPress', {
                         featured_image_media_id: createdWordPressPost.featured_image_media_id || null,
                         featured_image_url: createdWordPressPost.featured_image_url || null,
                         featured_image_prompt_en: rewrittenPost.featured_image_prompt_en || null,
-                        source_references: rewrittenPost.source_references || []
+                        source_references: rewrittenPost.source_references || [],
+                        editorial_quality: {
+                            focus: rewrittenPost.editorial_focus || '',
+                            relevance: rewrittenPost.editorial_relevance || '',
+                            supporting_aspects: rewrittenPost.supporting_aspects || [],
+                            omitted_aspects: rewrittenPost.omitted_aspects || []
+                        }
                     }
                 }
             };
