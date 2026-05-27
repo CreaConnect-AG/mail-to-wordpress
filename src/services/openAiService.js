@@ -394,15 +394,21 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Verwende kurze, klare Absätze mit nachvollziehbarer Gedankenführung.
         Formuliere Zwischentitel kurz, sachlich und redaktionell.
         Vermeide werbliche Sprache, PR-Floskeln, unkritische Formulierungen, Spam-Phrasen, fremdsprachige Fragmente, Sonderzeichenketten und irrelevante Zusätze.
-        Vermeide Gedankenstriche als Stilmittel im gesamten zurückgegebenen Text.
-        Im content_html ist höchstens ein einzelner Gedankenstrich erlaubt, und nur wenn er sprachlich wirklich notwendig ist.`,
+        Vermeide Gedankenstriche, Halbgeviertstriche und Bindestriche als stilistisches Satzzeichen im gesamten zurückgegebenen Text.
+        Im content_html ist höchstens ein einzelner Gedankenstrich erlaubt, und nur wenn er sprachlich wirklich notwendig ist.
+        Normale orthografische Bindestriche in zusammengesetzten Begriffen sind erlaubt und sollen korrekt verwendet werden, etwa Netto- und Bruttomieten, Gross- und Mittelstädte, Ost- und Mitteldeutschland, 3-Zimmer-Wohnung, IW-Prognose oder Exit-Potenzial.`,
 
         `# Titel
         Der Titel muss immer neu formuliert werden und darf niemals dem Originaltitel entsprechen oder ihm nur leicht umgestellt ähneln.
-        Wähle für den Titel eine neue, redaktionelle und prägnante Formulierung mit maximal 40 Zeichen.
+        Wähle für den Titel eine neue, redaktionelle und prägnante Formulierung mit maximal 60 Zeichen.
+        Der Titel soll den konkreten Nachrichtenwert oder Markteffekt benennen. Gute Titel zeigen, was sich verändert, wo der Druck entsteht, welche Entwicklung relevant ist oder welche Entscheidung bevorsteht.
+        Vermeide sehr allgemeine Titel, die auch zu vielen anderen Artikeln passen würden, etwa «Politik rückt ins Zentrum», «Markt im Fokus», «Preise unter Druck», «Neue Dynamik am Markt», «Wenn Preise zur Last werden» oder ähnliche austauschbare Formulierungen.
+        Vermeide zu metaphorische, dramatische oder boulevardeske Titel. Der Titel soll sachlich, klar und immobilienwirtschaftlich wirken.
+        Bevorzuge konkrete Titel mit Ort, Markt, Nutzung, Entwicklung oder Wirkung, wenn dies ohne Firmennamen möglich ist. Beispiele für gute Richtung: «Zug vermisst den Mietmarkt», «Standorte entscheiden stärker», «Wohnmarkt bremst Wirtschaft», «Wiederaufbau erhöht Baudruck», «Zürich prüft Wohnregeln».
         Der Titel darf keinen Doppelpunkt enthalten.
         Im Titel dürfen keine Gedankenstriche, Halbgeviertstriche oder Bindestrich-Konstruktionen als Stilmittel vorkommen.
-        Verwende im Titel keine Firmennamen, Markennamen oder Produktnamen.`,
+        Normale orthografische Bindestriche sind im Titel nur erlaubt, wenn sie für ein korrektes zusammengesetztes Wort nötig sind. Vermeide sie aber, wenn eine gleich gute Formulierung ohne Bindestrich möglich ist.
+        Verwende im Titel keine Firmennamen, Markennamen oder Produktnamen, ausser der Beitrag ist ohne diesen Namen nicht verständlich.`,
 
         `# Firmen, Marken und Produktnamen im Inhalt
         Im Inhalt dürfen Firmennamen, Markennamen oder Produktnamen verwendet werden, wenn sie für die Nachricht, Einordnung oder Verständlichkeit relevant sind.
