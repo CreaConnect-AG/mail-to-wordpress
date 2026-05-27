@@ -4,3 +4,11 @@ local.settings.json
 dist/
 *.log
 test-data/
+
+# Azurite local storage emulator files
+__blobstorage__/
+__queuestorage__/
+__tablestorage__/
+__azurite_db_*.json
+__azurite_db_*_extent__.json
+AzuriteConfig
