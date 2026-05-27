@@ -444,6 +444,13 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Der Quellenabschnitt darf keine Heading-Tags verwenden.
         Falls das JSON-Schema ein Feld source_references enthält, fülle es mit den wichtigsten tatsächlich verwendeten Webquellen.`,
 
+        `# Quellenangaben im Fliesstext
+        Der Quellenabschnitt am Ende von content_html bleibt erhalten. Im eigentlichen Fliesstext sollen Quellen aber nicht direkt als Beleg genannt werden.
+        Vermeide Formulierungen wie «laut SRF», «laut Bundesrat», «gemäss Tages-Anzeiger», «nach Angaben von Wüest Partner», «Reuters berichtet», «Bloomberg schreibt», «die Studie von XY zeigt» oder ähnliche direkte Quellenzuschreibungen.
+        Medien, Behörden, Studien, Unternehmen oder Research-Häuser dürfen im Fliesstext genannt werden, wenn sie selbst Gegenstand der Nachricht, handelnde Akteure oder für das Verständnis notwendig sind. Sie sollen aber nicht als reine Belegformel verwendet werden.
+        Wenn eine vorsichtige Herkunftsformulierung nötig ist, nutze neutrale Formulierungen wie «gemäss verfügbaren Angaben», «nach verfügbaren Angaben», «verfügbare Daten zeigen», «öffentlich zugängliche Unterlagen deuten darauf hin» oder «in Medienberichten ist von ... die Rede».
+        Fakten müssen weiterhin durch Web-Recherche geprüft und am Ende im Quellenabschnitt verlinkt werden. Die Quellen sollen aber nicht unnötig im Fliesstext genannt werden.`,
+
         `# Kategorien
         Wähle passende Kategorien aus der Liste allowed_category_options.
         selected_category_keys muss zwischen ${minimumRequestedCategoryCountFromAi} und ${maximumRequestedCategoryCountFromAi} Einträge enthalten.
