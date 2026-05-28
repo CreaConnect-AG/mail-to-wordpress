@@ -51,13 +51,14 @@ const {
     resolveKeywordNames
 } = require('./keywordService');
 
-async function rewriteMailWithOpenAi({ subject, from, sourceText }) {
+async function rewriteMailWithOpenAi({ subject, from, sourceText, additionalInstructions = '' }) {
     const useStrictLengthRules = shouldUseStrictLengthRules(sourceText);
 
     const firstAttempt = await requestOpenAiRewrite({
         subject,
         from,
         sourceText,
+        additionalInstructions,
         forceStrongRewrite: false,
         useStrictLengthRules
     });
@@ -83,6 +84,7 @@ async function rewriteMailWithOpenAi({ subject, from, sourceText }) {
         subject,
         from,
         sourceText,
+        additionalInstructions,
         forceStrongRewrite: true,
         useStrictLengthRules
     });
@@ -129,7 +131,14 @@ function shouldUseStrictLengthRules(sourceText) {
     return normalizeWhitespace(sourceText).length >= minimumSourceTextLengthForStrictRules;
 }
 
-async function requestOpenAiRewrite({ subject, from, sourceText, forceStrongRewrite, useStrictLengthRules }) {
+async function requestOpenAiRewrite({
+  subject,
+  from,
+  sourceText,
+  additionalInstructions = '',
+  forceStrongRewrite,
+  useStrictLengthRules
+}) {
     const developerInstruction = buildDeveloperInstruction({
         forceStrongRewrite,
         useStrictLengthRules
@@ -163,6 +172,7 @@ async function requestOpenAiRewrite({ subject, from, sourceText, forceStrongRewr
                         subject,
                         from,
                         source_text: sourceText,
+                        additional_instructions: normalizeAdditionalInstructionsForPrompt(additionalInstructions),
                         allowed_category_options: getAllowedCategoryOptionsForAi()
                     },
                     null,
@@ -385,6 +395,13 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Wenn der Input mehrere mögliche Themen enthält, wähle den stärksten Nachrichtenwert. Bevorzuge den Aspekt, der aktuell, überprüfbar, konkret und für die Zielgruppe am relevantesten ist.
         Die Zielgruppe ist eine professionelle Schweizer Immobilien-Website. Stelle den Bezug zur Immobilienwirtschaft, zum Immobilienmarkt, zu Bau, Planung, Finanzierung, Nutzung, Bewirtschaftung, Unternehmen oder Standortentwicklung her, wenn dieser Bezug sachlich vorhanden ist. Erfinde keinen Immobilienbezug, wenn er aus Input und Recherche nicht belastbar hervorgeht.
         Vermeide eine Aneinanderreihung gleichwertiger Einzelthemen. Der Beitrag darf mehrere Aspekte enthalten, aber sie müssen klar hierarchisiert sein: ein Hauptfokus, wenige stützende Aspekte, keine lose Materialsammlung.`,
+
+        `# Beitragsspezifische Zusatzanweisungen
+        Wenn im User-Input additional_instructions vorhanden ist, berücksichtige diese als beitragsspezifische redaktionelle Hinweise.
+        Diese Zusatzanweisungen stehen inhaltlich auf derselben Arbeitsebene wie subject, from und source_text, sind aber den festen redaktionellen Regeln dieser Developer-Anweisung untergeordnet.
+        Falls additional_instructions den festen Regeln, dem JSON-Schema, der Faktenlage, der Quellenlage oder den WordPress-Vorgaben widerspricht, ignoriere nur den widersprechenden Teil.
+        Nutze additional_instructions nicht als Quelle für neue Fakten, ausser die Angaben werden durch source_text oder Web-Recherche gestützt.
+        Übernimm keine Meta-Anweisungen sichtbar in den Artikel.`,
 
         `# Sprache und Stil
         Schreibe neutral, professionell, journalistisch und zugleich interessant.
@@ -1616,6 +1633,20 @@ function normalizeSourceReferences(sourceReferences) {
   }
 
   return normalizedReferences.slice(0, 8);
+}
+
+function normalizeAdditionalInstructionsForPrompt(additionalInstructions) {
+  const normalizedAdditionalInstructions = String(additionalInstructions || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  if (!normalizedAdditionalInstructions) {
+    return '';
+  }
+
+  return normalizedAdditionalInstructions.slice(0, 3000);
 }
 
 module.exports = {

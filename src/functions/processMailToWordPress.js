@@ -65,10 +65,13 @@ app.http('processMailToWordPress', {
 
             const sourceText = buildSourceText(requestBody);
 
+            const additionalInstructions = buildAdditionalInstructions(requestBody);
+
             const rewrittenPost = await rewriteMailWithOpenAi({
                 subject: String(requestBody.subject || ''),
                 from: senderEmailAddress,
-                sourceText
+                sourceText,
+                additionalInstructions
             });
 
             if (enableFeaturedImageGeneration) {
@@ -182,4 +185,23 @@ function normalizeSourceText(text) {
         .join('\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
+}
+
+function buildAdditionalInstructions(requestBody) {
+  const maximumAdditionalInstructionsLength = 3000;
+
+  const additionalInstructions = String(requestBody.additional_instructions || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map((line) => normalizeWhitespace(line))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  if (!additionalInstructions) {
+    return '';
+  }
+
+  return additionalInstructions.slice(0, maximumAdditionalInstructionsLength);
 }
