@@ -81,7 +81,7 @@ Example:
 
 ```json
 {
-  "additional_instructions": "Mention why this topic is relevant for a Swiss real estate news website and explain the connection to immo-invest.ch."
+  "additional_instructions": "Mention why this topic is relevant for a Swiss real estate news website."
 }
 ```
 
@@ -612,7 +612,7 @@ curl -X POST "https://mail-to-wordpress.azurewebsites.net/api/process-mail-to-wo
 ```bash
 curl -X POST "https://mail-to-wordpress.azurewebsites.net/api/process-mail-to-wordpress?code=YOUR_FUNCTION_KEY" \
   -H "Content-Type: application/json" \
-  -d "{\"from\":\"newsletter@example.com\",\"subject\":\"Test Mail\",\"text_body\":\"This is a test mail content.\",\"additional_instructions\":\"Mention the relevance for immo-invest.ch in the article.\"}"
+  -d "{\"from\":\"newsletter@example.com\",\"subject\":\"Test Mail\",\"text_body\":\"This is a test mail content.\",\"additional_instructions\":\"Mention the relevance for xxx in the article.\"}"
 ```
 
 5. Test the deployed original-mail flow.
