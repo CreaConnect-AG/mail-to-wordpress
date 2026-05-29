@@ -358,6 +358,15 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Nutze die E-Mail, um relevante Themen, Firmen, Projekte, Orte, Personen, Daten, Zahlen, Entwicklungen und mögliche Nachrichtenwerte zu erkennen.
         Erstelle keinen blossen Rewrite und keine sprachlich umformulierte Version der E-Mail.`,
 
+        `# Nachrichtenkern und Themenbindung
+        Bestimme vor der Recherche den zentralen Nachrichtenkern des Inputs in einem Satz.
+        Dieser Nachrichtenkern muss auch nach der Web-Recherche erkennbar erhalten bleiben.
+        Die Web-Recherche darf den Beitrag ergänzen, aktualisieren, einordnen und zuspitzen, aber sie darf den Beitrag nicht auf ein anderes Hauptthema verschieben.
+        Neue Rechercheaspekte dürfen nur zum Hauptfokus werden, wenn sie denselben Kern direkt betreffen, etwa dieselbe Firma, dasselbe Projekt, dieselbe Regulierung, denselben Standort, denselben Marktmechanismus oder dieselbe konkrete Immobilienwirkung.
+        Allgemein passende Immobilien-, Finanzierungs-, Politik- oder Marktthemen reichen nicht aus, wenn sie den Nachrichtenkern des Inputs nicht direkt stützen.
+        Wenn der Input mehrere Themen enthält, darf ein Schwerpunkt gewählt werden. Der Auslöser der Meldung darf dabei aber nicht umgedeutet werden.
+        Ein politischer, regulatorischer oder marktbezogener Kontext darf eine Unternehmensmeldung einordnen, aber nicht fälschlich als Grund für eine Kapitalmassnahme, Entscheidung oder Entwicklung dargestellt werden, wenn dies aus Input und Recherche nicht hervorgeht.`,
+
         `# Web-Recherche und Aktualität
         Aktuelles Datum für Recherche und Einordnung: ${currentDateText}.
         Führe verpflichtend eine Web-Recherche durch, bevor du den Beitrag schreibst.
@@ -372,8 +381,8 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Prüfe Aussagen aus der E-Mail anhand der Web-Recherche, bevor du sie als Tatsache verwendest.
         Neue Fakten aus dem Web dürfen nur verwendet werden, wenn sie durch eine verlässliche Quelle gestützt sind.
         Wenn Angaben aus der E-Mail im Web nicht verifiziert werden können, formuliere sie vorsichtig oder lasse sie weg.
-        Wenn die Web-Recherche zusätzliche relevante Informationen liefert, erweitere den Beitrag damit und wähle bei Bedarf einen neuen redaktionellen Blickwinkel.
-        Wenn die Web-Recherche zeigt, dass ein anderer Aspekt wichtiger, aktueller oder interessanter ist als der E-Mail-Text selbst, darf der Beitrag aus diesem neuen Blickwinkel aufgebaut werden.
+        Wenn die Web-Recherche zusätzliche relevante Informationen liefert, erweitere den Beitrag damit und wähle bei Bedarf einen präziseren redaktionellen Blickwinkel innerhalb desselben Nachrichtenkerns.
+        Wenn die Web-Recherche zeigt, dass ein anderer Aspekt wichtiger, aktueller oder interessanter ist als der erste Eindruck aus der E-Mail, darf der Beitrag aus diesem Blickwinkel aufgebaut werden, sofern dieser Aspekt den ursprünglichen Nachrichtenkern direkt betrifft und nicht nur allgemein zum Immobilienmarkt passt.
         Wenn keine aktuellen belastbaren Webinformationen gefunden werden, schreibe keinen scheinbar aktuellen Beitrag, sondern formuliere zurückhaltend.
         Wenn die Web-Recherche keine belastbaren Zusatzinformationen liefert, schreibe einen eigenständigen Beitrag auf Basis des Inputs, aber ohne ungesicherte Zusatzdetails.
         Der Beitrag soll den Stand der recherchierten Informationen zum aktuellen Datum widerspiegeln.`,
@@ -394,7 +403,10 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Der Artikel soll nach dem Lesen in einem Satz zusammenfassbar sein. Titel, Auszug, Einstieg, Zwischentitel und Schluss müssen auf denselben redaktionellen Kern einzahlen.
         Wenn der Input mehrere mögliche Themen enthält, wähle den stärksten Nachrichtenwert. Bevorzuge den Aspekt, der aktuell, überprüfbar, konkret und für die Zielgruppe am relevantesten ist.
         Die Zielgruppe ist eine professionelle Schweizer Immobilien-Website. Stelle den Bezug zur Immobilienwirtschaft, zum Immobilienmarkt, zu Bau, Planung, Finanzierung, Nutzung, Bewirtschaftung, Unternehmen oder Standortentwicklung her, wenn dieser Bezug sachlich vorhanden ist. Erfinde keinen Immobilienbezug, wenn er aus Input und Recherche nicht belastbar hervorgeht.
-        Vermeide eine Aneinanderreihung gleichwertiger Einzelthemen. Der Beitrag darf mehrere Aspekte enthalten, aber sie müssen klar hierarchisiert sein: ein Hauptfokus, wenige stützende Aspekte, keine lose Materialsammlung.`,
+        Vermeide eine Aneinanderreihung gleichwertiger Einzelthemen. Der Beitrag darf mehrere Aspekte enthalten, aber sie müssen klar hierarchisiert sein: ein Hauptfokus, wenige stützende Aspekte, keine lose Materialsammlung.
+        Zentrale Fakten, Zahlen, Akteure, Orte und Aussagen aus dem Input, die den Nachrichtenwert tragen, müssen im Beitrag erhalten bleiben oder bewusst und sachlich begründet weggelassen werden.
+        Warnungen, Prognosen, Investitionsvolumen, Verschuldungskennzahlen, regulatorische Fristen oder konkrete Unternehmensangaben dürfen nicht ausgelassen werden, wenn sie für den Nachrichtenkern entscheidend sind.
+        Solche Angaben müssen aber sauber eingeordnet werden: Prognosen, Einschätzungen und Warnungen sind nicht als bereits eingetretene Tatsachen darzustellen.`,
 
         `# Beitragsspezifische Zusatzanweisungen
         Wenn im User-Input additional_instructions vorhanden ist, berücksichtige diese als beitragsspezifische redaktionelle Hinweise.
@@ -413,7 +425,10 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Vermeide werbliche Sprache, PR-Floskeln, unkritische Formulierungen, Spam-Phrasen, fremdsprachige Fragmente, Sonderzeichenketten und irrelevante Zusätze.
         Vermeide Gedankenstriche, Halbgeviertstriche und Bindestriche als stilistisches Satzzeichen im gesamten zurückgegebenen Text.
         Im content_html ist höchstens ein einzelner Gedankenstrich erlaubt, und nur wenn er sprachlich wirklich notwendig ist.
-        Normale orthografische Bindestriche in zusammengesetzten Begriffen sind erlaubt und sollen korrekt verwendet werden, etwa Netto- und Bruttomieten, Gross- und Mittelstädte, Ost- und Mitteldeutschland, 3-Zimmer-Wohnung, IW-Prognose oder Exit-Potenzial.`,
+        Normale orthografische Bindestriche in zusammengesetzten Begriffen sind erlaubt und sollen korrekt verwendet werden, etwa Netto- und Bruttomieten, Gross- und Mittelstädte, Ost- und Mitteldeutschland, 3-Zimmer-Wohnung, IW-Prognose oder Exit-Potenzial.
+        Verwende Schweizer Hochdeutsch. Schreibe ss statt ß.
+        Verwende bei grossen Zahlen eine einheitliche Schweizer oder deutschsprachige Schreibweise, etwa 1’040,4 Mrd. Franken oder 1.040,4 Mrd. Euro, aber keine gemischten Formate wie 1,040,4 Mrd.
+        Achte auf korrekte Bindestriche bei gekoppelten Begriffen wie Energie- und Modernisierungskosten, Transaktions- und Finanzierungsfähigkeit oder Netto- und Bruttomieten.`,
 
         `# Titel
         Der Titel muss immer neu formuliert werden und darf niemals dem Originaltitel entsprechen oder ihm nur leicht umgestellt ähneln.
@@ -425,7 +440,10 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Der Titel darf keinen Doppelpunkt enthalten.
         Im Titel dürfen keine Gedankenstriche, Halbgeviertstriche oder Bindestrich-Konstruktionen als Stilmittel vorkommen.
         Normale orthografische Bindestriche sind im Titel nur erlaubt, wenn sie für ein korrektes zusammengesetztes Wort nötig sind. Vermeide sie aber, wenn eine gleich gute Formulierung ohne Bindestrich möglich ist.
-        Verwende im Titel keine Firmennamen, Markennamen oder Produktnamen, ausser der Beitrag ist ohne diesen Namen nicht verständlich.`,
+        Verwende im Titel keine Firmennamen, Markennamen oder Produktnamen, ausser der Beitrag ist ohne diesen Namen nicht verständlich.
+        Der Titel darf keine Kausalität, Zuspitzung oder direkte Folge behaupten, die aus Input und Recherche nicht klar hervorgeht.
+        Vermeide Titel, die einen Kontextfaktor als Ursache darstellen, wenn er im Beitrag nur eine Einordnung oder ein Nebenaspekt ist.
+        Verwende Firmennamen, Markennamen oder Produktnamen im Titel nur, wenn die konkrete Firma selbst Trägerin der Nachricht ist oder der Titel ohne diesen Namen zu allgemein oder missverständlich würde.`,
 
         `# Firmen, Marken und Produktnamen im Inhalt
         Im Inhalt dürfen Firmennamen, Markennamen oder Produktnamen verwendet werden, wenn sie für die Nachricht, Einordnung oder Verständlichkeit relevant sind.
@@ -784,23 +802,11 @@ function buildOriginalMailResponseSchema() {
 }
 
 function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
-    const title = truncateToLength(
-        normalizeWhitespace(parsedResponse.title || ''),
-        maximumTitleLength
-    );
+    const title = normalizeWhitespace(parsedResponse.title || '');
 
     let contentHtml = normalizeGeneratedHtml(parsedResponse.content_html || '');
     if (!contentHtml) {
         throw new Error('OpenAI-Antwort enthält keinen gültigen Inhalt.');
-    }
-
-    if (contentHtml.length > maximumContentHtmlLength) {
-        const shortenedPlainText = truncateToLength(
-            htmlToPlainText(contentHtml),
-            maximumContentHtmlLength
-        );
-
-        contentHtml = `<p>${escapeHtml(shortenedPlainText)}</p>`;
     }
 
     const contentText = htmlToPlainText(contentHtml);
@@ -1205,8 +1211,16 @@ Aktuell: ${rewrittenPost.content_text.length} Zeichen.`);
     validationErrors.push('OpenAI-Titel enthält einen Doppelpunkt.');
   }
 
+  if (rewrittenPost.title.length > maximumTitleLength) {
+    validationErrors.push(`OpenAI-Titel ist zu lang. Aktuell: ${rewrittenPost.title.length} Zeichen.`);
+  }
+
+  if (rewrittenPost.content_html.length > maximumContentHtmlLength) {
+    validationErrors.push(`OpenAI-HTML ist zu lang. Aktuell: ${rewrittenPost.content_html.length} Zeichen.`);
+  }
+
   if (containsDashLikeCharacterInTitle(rewrittenPost.title)) {
-    validationErrors.push('OpenAI-Titel enthält einen Gedankenstrich oder Bindestrich.');
+    validationErrors.push('OpenAI-Titel enthält einen Gedankenstrich oder stilistischen Bindestrich.');
   }
 
   if (isTitleTooCloseToSubject(originalSubject, rewrittenPost.title)) {
@@ -1324,7 +1338,9 @@ function finalizeExcerptText(excerpt) {
 }
 
 function containsDashLikeCharacterInTitle(title) {
-    return /[-–—]/.test(String(title || ''));
+    const normalizedTitle = String(title || '');
+
+    return /[–—]/.test(normalizedTitle) || /\s-\s/.test(normalizedTitle);
 }
 
 function countDashStyleOccurrences(text) {
