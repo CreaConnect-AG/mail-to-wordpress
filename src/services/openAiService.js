@@ -417,7 +417,7 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
 
         `# Titel
         Der Titel muss immer neu formuliert werden und darf niemals dem Originaltitel entsprechen oder ihm nur leicht umgestellt ähneln.
-        Wähle für den Titel eine neue, redaktionelle und prägnante Formulierung mit maximal 60 Zeichen.
+        Wähle für den Titel eine neue, redaktionelle und prägnante Formulierung mit maximal ${maximumTitleLength} Zeichen.
         Der Titel soll den konkreten Nachrichtenwert oder Markteffekt benennen. Gute Titel zeigen, was sich verändert, wo der Druck entsteht, welche Entwicklung relevant ist oder welche Entscheidung bevorsteht.
         Vermeide sehr allgemeine Titel, die auch zu vielen anderen Artikeln passen würden, etwa «Politik rückt ins Zentrum», «Markt im Fokus», «Preise unter Druck», «Neue Dynamik am Markt», «Wenn Preise zur Last werden» oder ähnliche austauschbare Formulierungen.
         Vermeide zu metaphorische, dramatische oder boulevardeske Titel. Der Titel soll sachlich, klar und immobilienwirtschaftlich wirken.
