@@ -24,91 +24,161 @@ const {
     createWordPressDraft
 } = require('../services/wordpressService');
 
+const {
+    createExecutionLogger,
+    runLoggedStep,
+    getSafeMailDetails
+} = require('../utils/logger');
+
 app.http('processOriginalMailToWordPress', {
     methods: ['GET', 'POST'],
     authLevel: 'function',
     route: 'process-original-mail-to-wordpress',
     handler: async (request, context) => {
+        const logger = createExecutionLogger({
+            context,
+            functionName: 'processOriginalMailToWordPress',
+            request
+        });
+
         const requestMethod = String(request.method || 'GET').toUpperCase();
 
         if (requestMethod === 'GET') {
             return {
-                status: 200,
-                jsonBody: {
-                    success: true,
-                    message: 'Die Original-Mail Azure Function läuft.',
-                    time: new Date().toISOString()
-                }
+            status: 200,
+            jsonBody: {
+                success: true,
+                message: 'Die Original-Mail Azure Function läuft.',
+                time: new Date().toISOString()
+            }
             };
         }
 
         try {
-            validateEnvironmentVariables();
+            await runLoggedStep(
+            'validate_environment',
+            logger,
+            () => validateEnvironmentVariables()
+            );
 
-            const requestBody = await request.json();
-            validateRequestBody(requestBody);
+            const requestBody = await runLoggedStep(
+            'read_request_body',
+            logger,
+            () => request.json()
+            );
+
+            await runLoggedStep(
+            'validate_request_body',
+            logger,
+            () => validateRequestBody(requestBody),
+            {
+                has_text_body: Boolean(requestBody?.text_body),
+                has_html_body: Boolean(requestBody?.html_body),
+                subject_length: String(requestBody?.subject || '').length
+            }
+            );
 
             const senderEmailAddress = normalizeEmailAddress(requestBody.from);
 
             if (!isAllowedSender(senderEmailAddress)) {
-                return {
-                    status: 202,
-                    jsonBody: {
-                        success: true,
-                        message: 'Absender ist nicht freigegeben.',
-                        created_post: null,
-                        skipped_reason: 'sender_not_allowed'
-                    }
-                };
+            logger.warn('sender_not_allowed', {
+                step: 'check_allowed_sender',
+                sender_domain: String(senderEmailAddress || '').split('@')[1] || ''
+            });
+
+            return {
+                status: 202,
+                jsonBody: {
+                success: true,
+                message: 'Absender ist nicht freigegeben.',
+                created_post: null,
+                skipped_reason: 'sender_not_allowed',
+                correlation_id: logger.correlationId
+                }
+            };
             }
 
-            const sourceText = buildOriginalSourceText(requestBody);
+            const sourceText = await runLoggedStep(
+            'build_original_source_text',
+            logger,
+            () => buildOriginalSourceText(requestBody),
+            getSafeMailDetails(requestBody, senderEmailAddress)
+            );
 
-            const originalPost = await prepareOriginalMailWithOpenAi({
+            const originalPost = await runLoggedStep(
+            'openai_prepare_original_mail',
+            logger,
+            () => prepareOriginalMailWithOpenAi({
                 subject: String(requestBody.subject || ''),
                 from: senderEmailAddress,
                 sourceText
-            });
+            }),
+            getSafeMailDetails(requestBody, senderEmailAddress, sourceText)
+            );
 
             if (enableFeaturedImageGeneration) {
-                originalPost.generated_featured_image = await generateFeaturedImageWithOpenAi(originalPost);
+            originalPost.generated_featured_image = await runLoggedStep(
+                'openai_generate_featured_image',
+                logger,
+                () => generateFeaturedImageWithOpenAi(originalPost),
+                {
+                post_title_length: String(originalPost.title || '').length
+                }
+            );
             }
 
-            const createdWordPressPost = await createWordPressDraft(originalPost);
+            const createdWordPressPost = await runLoggedStep(
+            'wordpress_create_draft',
+            logger,
+            () => createWordPressDraft(originalPost),
+            {
+                post_title_length: String(originalPost.title || '').length,
+                category_count: Array.isArray(originalPost.category_ids) ? originalPost.category_ids.length : 0,
+                tag_count: Array.isArray(originalPost.tag_names) ? originalPost.tag_names.length : 0,
+                has_featured_image: Boolean(originalPost.generated_featured_image)
+            }
+            );
 
             return {
-                status: 200,
-                jsonBody: {
-                    success: true,
-                    message: 'WordPress-Entwurf aus Original-Mail wurde erstellt.',
-                    created_post: {
-                        wordpress_post_id: createdWordPressPost.id,
-                        wordpress_status: createdWordPressPost.status,
-                        wordpress_slug: createdWordPressPost.slug,
-                        wordpress_link: createdWordPressPost.link || null,
-                        wordpress_title: createdWordPressPost.title?.rendered || originalPost.title,
-                        lead_value: originalPost.lead,
-                        original_content_used: true,
-                        assigned_category_ids: originalPost.category_ids || [],
-                        assigned_category_titles: originalPost.selected_category_titles || [],
-                        assigned_tag_ids: createdWordPressPost.assigned_tag_ids || [],
-                        assigned_tag_names: originalPost.tag_names || [],
-                        assigned_thematic_keyword_names: originalPost.thematic_keyword_names || [],
-                        featured_image_media_id: createdWordPressPost.featured_image_media_id || null,
-                        featured_image_url: createdWordPressPost.featured_image_url || null,
-                        featured_image_prompt_en: originalPost.featured_image_prompt_en || null
-                    }
+            status: 200,
+            jsonBody: {
+                success: true,
+                message: 'WordPress-Entwurf aus Original-Mail wurde erstellt.',
+                correlation_id: logger.correlationId,
+                created_post: {
+                wordpress_post_id: createdWordPressPost.id,
+                wordpress_status: createdWordPressPost.status,
+                wordpress_slug: createdWordPressPost.slug,
+                wordpress_link: createdWordPressPost.link || null,
+                wordpress_title: createdWordPressPost.title?.rendered || originalPost.title,
+                lead_value: originalPost.lead,
+                original_content_used: true,
+                assigned_category_ids: originalPost.category_ids || [],
+                assigned_category_titles: originalPost.selected_category_titles || [],
+                assigned_tag_ids: createdWordPressPost.assigned_tag_ids || [],
+                assigned_tag_names: originalPost.tag_names || [],
+                assigned_thematic_keyword_names: originalPost.thematic_keyword_names || [],
+                featured_image_media_id: createdWordPressPost.featured_image_media_id || null,
+                featured_image_url: createdWordPressPost.featured_image_url || null,
+                featured_image_prompt_en: originalPost.featured_image_prompt_en || null
                 }
+            }
             };
         } catch (error) {
-            context.error('Fehler in processOriginalMailToWordPress:', error);
+            if (!error.alreadyLogged) {
+            logger.error('request_failed', error, {
+                step: error.failedStepName || 'unknown'
+            });
+            }
 
             return {
-                status: 500,
-                jsonBody: {
-                    success: false,
-                    message: error.message || 'Unbekannter Fehler.'
-                }
+            status: 500,
+            jsonBody: {
+                success: false,
+                message: error.message || 'Unbekannter Fehler.',
+                failed_step: error.failedStepName || 'unknown',
+                correlation_id: logger.correlationId
+            }
             };
         }
     }
