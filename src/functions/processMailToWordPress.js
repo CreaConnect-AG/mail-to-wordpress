@@ -112,7 +112,8 @@ app.http('processMailToWordPress', {
             () => rewriteMailWithOpenAi({
                 subject: String(requestBody.subject || ''),
                 from: senderEmailAddress,
-                sourceText
+                sourceText,
+                additionalInstructions
             }),
             getSafeMailDetails(requestBody, senderEmailAddress, sourceText)
             );
