@@ -9,7 +9,7 @@ const openAiModel = process.env.OPENAI_MODEL || 'gpt-5.5';
 const openAiOriginalModel = process.env.OPENAI_ORIGINAL_MODEL || openAiModel;
 
 const openAiImageModel = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5';
-const openAiImageSize = process.env.OPENAI_IMAGE_SIZE || '1200x624';
+const openAiImageSize = process.env.OPENAI_IMAGE_SIZE || '1536x1024';
 const openAiImageQuality = process.env.OPENAI_IMAGE_QUALITY || 'high';
 const openAiImageOutputFormat = process.env.OPENAI_IMAGE_OUTPUT_FORMAT || 'jpeg';
 const enableFeaturedImageGeneration = String(process.env.ENABLE_FEATURED_IMAGE_GENERATION || 'false').toLowerCase() === 'true';
