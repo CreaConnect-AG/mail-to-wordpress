@@ -100,22 +100,24 @@ app.http('processMailToWordPress', {
             }
 
             const sourceText = await runLoggedStep(
-            'build_source_text',
-            logger,
-            () => buildSourceText(requestBody),
-            getSafeMailDetails(requestBody, senderEmailAddress)
+                'build_source_text',
+                logger,
+                () => buildSourceText(requestBody),
+                getSafeMailDetails(requestBody, senderEmailAddress)
             );
 
+            const additionalInstructions = buildAdditionalInstructions(requestBody);
+
             const rewrittenPost = await runLoggedStep(
-            'openai_rewrite_mail',
-            logger,
-            () => rewriteMailWithOpenAi({
-                subject: String(requestBody.subject || ''),
-                from: senderEmailAddress,
-                sourceText,
-                additionalInstructions
-            }),
-            getSafeMailDetails(requestBody, senderEmailAddress, sourceText)
+                'openai_rewrite_mail',
+                logger,
+                () => rewriteMailWithOpenAi({
+                    subject: String(requestBody.subject || ''),
+                    from: senderEmailAddress,
+                    sourceText,
+                    additionalInstructions
+                }),
+                getSafeMailDetails(requestBody, senderEmailAddress, sourceText)
             );
 
             if (enableFeaturedImageGeneration) {
