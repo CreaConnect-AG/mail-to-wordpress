@@ -437,6 +437,8 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
 
         `# Sprache und Stil
         Schreibe in Schweizer Hochdeutsch, sachlich, klar und redaktionell.
+        Verwende normale deutsche Umlaute wie ä, ö und ü in Titel, Auszug, Lead, Alt-Text und content_html. Ersetze Umlaute nicht durch ae, oe oder ue. Schreibe also «Zürich», «Gebäude», «Müller», «Fläche» und «höhere».
+        Verwende Schweizer Rechtschreibung und schreibe ss statt ß.
         Der Text soll wie ein kompakter immo!nvest-Fachartikel wirken, nicht wie eine E-Mail-Zusammenfassung, Medienmitteilung, Marktanalyse oder ein Research-Kommentar.
         Schreibe mit kurzen, klaren Absätzen.
         Setze konkrete Substantive und starke Verben ein.
@@ -452,7 +454,6 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Vermeide Gedankenstriche, Halbgeviertstriche und Bindestriche als stilistisches Satzzeichen im gesamten zurückgegebenen Text.
         Im content_html ist höchstens ein einzelner Gedankenstrich erlaubt, und nur wenn er sprachlich wirklich notwendig ist.
         Normale orthografische Bindestriche in zusammengesetzten Begriffen sind erlaubt und sollen korrekt verwendet werden, etwa Netto- und Bruttomieten, Gross- und Mittelstädte, 3-Zimmer-Wohnung, IW-Prognose, Loan-to-Value-Verhältnis oder Exit-Potenzial.
-        Schreibe ss statt ß.
         Verwende bei grossen Zahlen eine einheitliche Schweizer oder deutschsprachige Schreibweise, etwa 1’040,4 Mrd. Franken oder 1.040,4 Mrd. Euro, aber keine gemischten Formate wie 1,040,4 Mrd.
         Achte auf korrekte Bindestriche bei gekoppelten Begriffen wie Energie- und Modernisierungskosten, Transaktions- und Finanzierungsfähigkeit oder Netto- und Bruttomieten.`,
 
