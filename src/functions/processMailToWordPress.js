@@ -150,28 +150,29 @@ app.http('processMailToWordPress', {
                 message: 'WordPress-Entwurf wurde erstellt.',
                 correlation_id: logger.correlationId,
                 created_post: {
-                wordpress_post_id: createdWordPressPost.id,
-                wordpress_status: createdWordPressPost.status,
-                wordpress_slug: createdWordPressPost.slug,
-                wordpress_link: createdWordPressPost.link || null,
-                wordpress_title: createdWordPressPost.title?.rendered || rewrittenPost.title,
-                lead_value: rewrittenPost.lead,
-                strict_rules_used: shouldUseStrictLengthRules(sourceText),
-                assigned_category_ids: rewrittenPost.category_ids || [],
-                assigned_category_titles: rewrittenPost.selected_category_titles || [],
-                assigned_tag_ids: createdWordPressPost.assigned_tag_ids || [],
-                assigned_tag_names: rewrittenPost.tag_names || [],
-                assigned_thematic_keyword_names: rewrittenPost.thematic_keyword_names || [],
-                featured_image_media_id: createdWordPressPost.featured_image_media_id || null,
-                featured_image_url: createdWordPressPost.featured_image_url || null,
-                featured_image_prompt_en: rewrittenPost.featured_image_prompt_en || null,
-                source_references: rewrittenPost.source_references || [],
-                editorial_quality: {
-                    focus: rewrittenPost.editorial_focus || '',
-                    relevance: rewrittenPost.editorial_relevance || '',
-                    supporting_aspects: rewrittenPost.supporting_aspects || [],
-                    omitted_aspects: rewrittenPost.omitted_aspects || []
-                }
+                    wordpress_post_id: createdWordPressPost.id,
+                    wordpress_status: createdWordPressPost.status,
+                    wordpress_slug: createdWordPressPost.slug,
+                    wordpress_link: createdWordPressPost.link || null,
+                    wordpress_title: createdWordPressPost.title?.rendered || rewrittenPost.title,
+                    lead_value: rewrittenPost.lead,
+                    strict_rules_used: shouldUseStrictLengthRules(sourceText),
+                    assigned_category_ids: rewrittenPost.category_ids || [],
+                    assigned_category_titles: rewrittenPost.selected_category_titles || [],
+                    assigned_tag_ids: createdWordPressPost.assigned_tag_ids || [],
+                    assigned_tag_names: rewrittenPost.tag_names || [],
+                    assigned_thematic_keyword_names: rewrittenPost.thematic_keyword_names || [],
+                    featured_image_media_id: createdWordPressPost.featured_image_media_id || null,
+                    featured_image_url: createdWordPressPost.featured_image_url || null,
+                    featured_image_prompt_en: rewrittenPost.featured_image_prompt_en || null,
+                    midjourney_prompt_en: rewrittenPost.midjourney_prompt_en || null,
+                    source_references: rewrittenPost.source_references || [],
+                    editorial_quality: {
+                        focus: rewrittenPost.editorial_focus || '',
+                        relevance: rewrittenPost.editorial_relevance || '',
+                        supporting_aspects: rewrittenPost.supporting_aspects || [],
+                        omitted_aspects: rewrittenPost.omitted_aspects || []
+                    }
                 }
             }
             };

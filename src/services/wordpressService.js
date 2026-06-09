@@ -5,7 +5,8 @@ const {
     wordpressDefaultStatus,
     wordpressDefaultCategoryIds,
     wordpressAcfLeadFieldName,
-    wordpressAcfBestCategoryFieldName
+    wordpressAcfBestCategoryFieldName,
+    wordpressAcfMidjourneyPromptFieldName
 } = require('../config/environment');
 
 const {
@@ -89,6 +90,25 @@ async function createWordPressDraft(rewrittenPost) {
 
         if (!acfBestCategoryUpdateSucceeded) {
             throw new Error(`Der WordPress-Beitrag wurde erstellt, aber das ACF-Feld "${wordpressAcfBestCategoryFieldName}" konnte nicht gesetzt werden.`);
+        }
+    }
+
+    if (wordpressAcfMidjourneyPromptFieldName) {
+        const midjourneyPromptFieldValue = rewrittenPost.midjourney_prompt_en || '';
+
+        if (!midjourneyPromptFieldValue) {
+            throw new Error('Der WordPress-Beitrag wurde erstellt, aber es wurde kein Midjourney-Prompt ermittelt.');
+        }
+
+        const acfMidjourneyPromptUpdateSucceeded = await updateWordPressAcfField({
+            postId: createdPost.id,
+            fieldName: wordpressAcfMidjourneyPromptFieldName,
+            fieldValue: midjourneyPromptFieldValue,
+            authorizationHeader
+        });
+
+        if (!acfMidjourneyPromptUpdateSucceeded) {
+            throw new Error(`Der WordPress-Beitrag wurde erstellt, aber das ACF-Feld "${wordpressAcfMidjourneyPromptFieldName}" konnte nicht gesetzt werden.`);
         }
     }
 

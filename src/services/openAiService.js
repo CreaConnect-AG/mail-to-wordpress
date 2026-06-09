@@ -51,6 +51,8 @@ const {
     resolveKeywordNames
 } = require('./keywordService');
 
+const midjourneyPromptEnding = '--ar 2:1 --q 2 --no logos, text, cartoon';
+
 async function rewriteMailWithOpenAi({ subject, from, sourceText, additionalInstructions = '' }) {
     const useStrictLengthRules = shouldUseStrictLengthRules(sourceText);
 
@@ -554,7 +556,16 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         featured_image_prompt_en soll fotografisch, glaubwürdig, modern und professionell wirken.
         featured_image_prompt_en darf keine Logos, keinen lesbaren Text, keine Wasserzeichen, keine UI-Elemente, keine Infografiken und keinen Cartoon-Stil verlangen.
         featured_image_prompt_en darf keine Schilder, Bautafeln, Strassenschilder, Plakate, Banner, Beschriftungen, Dokumente, Zeitungen, Bildschirme, Karten, Diagramme, Nummernschilder, Firmennamen, Markennamen, Produktnamen, Buchstaben oder Zahlen im Bild verlangen.
-        featured_image_alt_text_de muss einen kurzen, sachlichen deutschen Alt-Text für das Bild liefern.`
+        featured_image_alt_text_de muss einen kurzen, sachlichen deutschen Alt-Text für das Bild liefern.`,
+
+        `# Midjourney-Prompt
+        midjourney_prompt_en muss in englischer Sprache formuliert sein.
+        midjourney_prompt_en muss eine realistische, fotografische Bildidee beschreiben, die klar zum Beitrag passt.
+        Der Stil ist realistisch, glaubwürdig, modern und professionell.
+        Das Bildformat ist 2:1.
+        Der Prompt darf keine Erklärungen, keinen Markdown-Codeblock und keine Anführungszeichen enthalten.
+        Die Endung des Prompts muss immer exakt lauten:
+        ${midjourneyPromptEnding}`
     ];
 
     if (forceStrongRewrite) {
@@ -719,6 +730,11 @@ function buildResponseSchema({ useStrictLengthRules }) {
         },
         minItems: 0,
         maxItems: 5
+      },
+      midjourney_prompt_en: {
+        type: 'string',
+        minLength: 60,
+        maxLength: 1400
       }
     },
     required: [
@@ -728,6 +744,7 @@ function buildResponseSchema({ useStrictLengthRules }) {
       'content_html',
       'selected_category_keys',
       'best_category_key',
+      'midjourney_prompt_en',
       'keyword_names',
       'featured_image_prompt_en',
       'featured_image_alt_text_de',
@@ -775,6 +792,12 @@ function buildOriginalMailDeveloperInstruction() {
         'best_category_key muss aus allowed_category_options stammen, muss type "topic" haben und muss eine der gewählten selected_category_keys sein.',
         'Wähle dafür die fachlich wichtigste und passendste Themen-Kategorie.',
         'best_category_key darf niemals eine Region sein.',
+        'midjourney_prompt_en muss in englischer Sprache formuliert sein.',
+        'midjourney_prompt_en muss eine realistische, fotografische Bildidee beschreiben, die klar zum Beitrag passt.',
+        'Der Stil ist realistisch.',
+        'Das Bildformat ist 2:1.',
+        'Logos, Text oder Cartoons sind nicht erlaubt.',
+        `Die Endung des Prompts muss immer exakt lauten: ${midjourneyPromptEnding}`,
         'Gib ausschliesslich valides JSON gemäss dem vorgegebenen Schema zurück.',
     ];
 
@@ -827,7 +850,12 @@ function buildOriginalMailResponseSchema() {
                 type: 'string',
                 minLength: 10,
                 maxLength: 180
-            }
+            },
+            midjourney_prompt_en: {
+                type: 'string',
+                minLength: 60,
+                maxLength: 1400
+            },
         },
         required: [
             'title',
@@ -835,6 +863,7 @@ function buildOriginalMailResponseSchema() {
             'selected_category_keys',
             'best_category_key',
             'keyword_names',
+            'midjourney_prompt_en',
             'featured_image_prompt_en',
             'featured_image_alt_text_de'
         ],
@@ -880,6 +909,11 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
     const featuredImagePrompt = normalizeWhitespace(parsedResponse.featured_image_prompt_en || '');
     const featuredImageAltText = normalizeWhitespace(parsedResponse.featured_image_alt_text_de || '');
 
+    const midjourneyPrompt = normalizeMidjourneyPrompt(
+        parsedResponse.midjourney_prompt_en,
+        featuredImagePrompt
+    );
+
     if (!featuredImagePrompt) {
         throw new Error('OpenAI-Antwort enthält keinen gültigen Bildprompt.');
     }
@@ -903,6 +937,7 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         content_text: contentText,
         selected_category_keys: normalizeSelectedCategoryKeys(parsedResponse.selected_category_keys),
         best_category_key: normalizeBestCategoryKey(parsedResponse.best_category_key),
+        midjourney_prompt_en: midjourneyPrompt,
         keyword_names: normalizeAiKeywordNames(parsedResponse.keyword_names),
         featured_image_prompt_en: featuredImagePrompt,
         featured_image_alt_text_de: featuredImageAltText,
@@ -958,6 +993,11 @@ function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
     const featuredImagePrompt = normalizeWhitespace(parsedResponse.featured_image_prompt_en || '');
     const featuredImageAltText = normalizeWhitespace(parsedResponse.featured_image_alt_text_de || '');
 
+    const midjourneyPrompt = normalizeMidjourneyPrompt(
+        parsedResponse.midjourney_prompt_en,
+        featuredImagePrompt
+    );
+
     if (!featuredImagePrompt) {
         throw new Error('OpenAI-Antwort enthält keinen gültigen Bildprompt.');
     }
@@ -975,6 +1015,7 @@ function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
         content_text: contentText,
         selected_category_keys: normalizeSelectedCategoryKeys(parsedResponse.selected_category_keys),
         best_category_key: normalizeBestCategoryKey(parsedResponse.best_category_key),
+        midjourney_prompt_en: midjourneyPrompt,
         keyword_names: normalizeAiKeywordNames(parsedResponse.keyword_names),
         featured_image_prompt_en: featuredImagePrompt,
         featured_image_alt_text_de: featuredImageAltText,
@@ -1651,6 +1692,27 @@ async function generateFeaturedImageWithOpenAi(rewrittenPost) {
         title: rewrittenPost.title,
         altText: rewrittenPost.featured_image_alt_text_de
     };
+}
+
+function normalizeMidjourneyPrompt(promptValue, fallbackPromptValue = '') {
+  const rawPrompt = normalizeWhitespace(promptValue || fallbackPromptValue);
+
+  if (!rawPrompt) {
+    throw new Error('OpenAI-Antwort enthält keinen gültigen Midjourney-Prompt.');
+  }
+
+  const promptWithoutMidjourneyParameters = rawPrompt
+    .replace(/\s+--ar\s+\S+/gi, '')
+    .replace(/\s+--q\s+\S+/gi, '')
+    .replace(/\s+--no\s+.*$/i, '')
+    .replace(/[.,;:\s]+$/g, '')
+    .trim();
+
+  if (!promptWithoutMidjourneyParameters) {
+    throw new Error('OpenAI-Antwort enthält keinen verwertbaren Midjourney-Prompt.');
+  }
+
+  return `${promptWithoutMidjourneyParameters} ${midjourneyPromptEnding}`;
 }
 
 function normalizeSourceReferences(sourceReferences) {

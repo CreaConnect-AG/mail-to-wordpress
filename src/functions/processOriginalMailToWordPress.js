@@ -146,21 +146,22 @@ app.http('processOriginalMailToWordPress', {
                 message: 'WordPress-Entwurf aus Original-Mail wurde erstellt.',
                 correlation_id: logger.correlationId,
                 created_post: {
-                wordpress_post_id: createdWordPressPost.id,
-                wordpress_status: createdWordPressPost.status,
-                wordpress_slug: createdWordPressPost.slug,
-                wordpress_link: createdWordPressPost.link || null,
-                wordpress_title: createdWordPressPost.title?.rendered || originalPost.title,
-                lead_value: originalPost.lead,
-                original_content_used: true,
-                assigned_category_ids: originalPost.category_ids || [],
-                assigned_category_titles: originalPost.selected_category_titles || [],
-                assigned_tag_ids: createdWordPressPost.assigned_tag_ids || [],
-                assigned_tag_names: originalPost.tag_names || [],
-                assigned_thematic_keyword_names: originalPost.thematic_keyword_names || [],
-                featured_image_media_id: createdWordPressPost.featured_image_media_id || null,
-                featured_image_url: createdWordPressPost.featured_image_url || null,
-                featured_image_prompt_en: originalPost.featured_image_prompt_en || null
+                    wordpress_post_id: createdWordPressPost.id,
+                    wordpress_status: createdWordPressPost.status,
+                    wordpress_slug: createdWordPressPost.slug,
+                    wordpress_link: createdWordPressPost.link || null,
+                    wordpress_title: createdWordPressPost.title?.rendered || originalPost.title,
+                    lead_value: originalPost.lead,
+                    original_content_used: true,
+                    assigned_category_ids: originalPost.category_ids || [],
+                    assigned_category_titles: originalPost.selected_category_titles || [],
+                    assigned_tag_ids: createdWordPressPost.assigned_tag_ids || [],
+                    assigned_tag_names: originalPost.tag_names || [],
+                    assigned_thematic_keyword_names: originalPost.thematic_keyword_names || [],
+                    featured_image_media_id: createdWordPressPost.featured_image_media_id || null,
+                    featured_image_url: createdWordPressPost.featured_image_url || null,
+                    featured_image_prompt_en: originalPost.featured_image_prompt_en || null,
+                    midjourney_prompt_en: originalPost.midjourney_prompt_en || null
                 }
             }
             };

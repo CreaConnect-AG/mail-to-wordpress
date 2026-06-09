@@ -27,6 +27,7 @@ const wordpressDefaultStatus = process.env.WORDPRESS_DEFAULT_STATUS || 'draft';
 const wordpressDefaultCategoryIds = parseIntegerList(process.env.WORDPRESS_DEFAULT_CATEGORY_IDS || '');
 const wordpressAcfLeadFieldName = process.env.WORDPRESS_ACF_LEAD_FIELD_NAME || 'lead';
 const wordpressAcfBestCategoryFieldName = process.env.WORDPRESS_ACF_BEST_CATEGORY_FIELD_NAME || 'best_cat';
+const wordpressAcfMidjourneyPromptFieldName = process.env.WORDPRESS_ACF_MIDJOURNEY_PROMPT_FIELD_NAME || 'midjourney_prompt_en';
 
 const mailAllowedSenders = parseStringList(process.env.MAIL_ALLOWED_SENDERS || '');
 
@@ -49,5 +50,6 @@ module.exports = {
     wordpressDefaultCategoryIds,
     wordpressAcfLeadFieldName,
     wordpressAcfBestCategoryFieldName,
+    wordpressAcfMidjourneyPromptFieldName,
     mailAllowedSenders
 };
