@@ -4,8 +4,8 @@ Azure Function project that receives email content from a mail automation flow a
 
 The project supports two processing flows:
 
-- `processMailToWordPress`: uses the email as source material, can perform OpenAI web search, rewrites the content into a new editorial WordPress draft, assigns categories and tags, stores an ACF lead text, adds sources, and can optionally generate a featured image.
-- `processOriginalMailToWordPress`: keeps the original title, lead, and article text from the email, assigns categories and tags, stores an ACF lead text, and can optionally generate a featured image.
+- `processMailToWordPress`: uses the email as source material, can perform OpenAI web search, rewrites the content into a new editorial WordPress draft, assigns categories and tags, stores ACF lead and best-category fields, creates a Midjourney prompt field, adds sources, and can optionally generate a featured image.
+- `processOriginalMailToWordPress`: keeps the original title, lead, and article text from the email, assigns categories and tags, stores ACF lead and best-category fields, creates a Midjourney prompt field, and can optionally generate a featured image.
 
 ## Processing overview
 
@@ -27,9 +27,10 @@ Main steps:
 4. Read optional `additional_instructions`.
 5. Send source text, metadata, category options, and optional additional instructions to OpenAI.
 6. OpenAI performs the editorial rewrite and, when enabled, web research.
-7. The result is validated and enriched with resolved categories and tags.
+7. The result is validated and enriched with resolved categories, tags, and a Midjourney prompt.
 8. A WordPress draft is created.
-9. A featured image can optionally be generated and assigned.
+9. ACF fields for lead, best category, and Midjourney prompt are stored.
+10. A featured image can optionally be generated and assigned.
 
 ### Original-mail flow
 
@@ -41,7 +42,7 @@ Route:
 
 This flow keeps the original title, lead, and article text from the email.
 
-OpenAI is used only to detect the original title, lead, article text, categories, tags, and featured image prompt. The article text is not rewritten.
+OpenAI is used only to detect the original title, lead, article text, categories, tags, featured image prompt, and Midjourney prompt. The article text is not rewritten.
 
 At the moment, `additional_instructions` are used by the rewrite flow only.
 
@@ -96,6 +97,34 @@ Rules:
 - Must not override the JSON schema, WordPress requirements, factual accuracy, or source rules.
 - If the instruction requests a specific mention, angle, or explanation, the prompt tells OpenAI to integrate it naturally into `content_html` where allowed.
 - Instructions are not treated as verified facts unless supported by the email input or web research.
+
+## Midjourney prompt
+
+Both processing flows generate a dedicated Midjourney prompt in addition to the normal featured image prompt.
+
+Rules for the generated Midjourney prompt:
+
+- The prompt is always written in English.
+- The style is realistic.
+- The intended image format is 2:1.
+- Logos, text, and cartoons are not allowed.
+- The prompt always ends exactly with:
+
+```text
+--ar 2:1 --q 2 --no logos, text, cartoon
+```
+
+The generated value is stored in WordPress through the configured ACF field:
+
+```text
+WORDPRESS_ACF_MIDJOURNEY_PROMPT_FIELD_NAME
+```
+
+Default field name:
+
+```text
+midjourney_prompt_en
+```
 
 ## Power Automate mail flow
 
@@ -310,7 +339,7 @@ Azure URL:
 https://mail-to-wordpress.azurewebsites.net/api/process-mail-to-wordpress?code=YOUR_FUNCTION_KEY
 ```
 
-This flow uses the email as a starting point, can perform OpenAI web search, creates a new editorial article, assigns categories and tags, stores the lead in ACF, and can generate a featured image.
+This flow uses the email as a starting point, can perform OpenAI web search, creates a new editorial article, assigns categories and tags, stores lead, best category, and Midjourney prompt in ACF, and can generate a featured image.
 
 ### `processOriginalMailToWordPress`
 
@@ -332,7 +361,7 @@ Azure URL:
 https://mail-to-wordpress.azurewebsites.net/api/process-original-mail-to-wordpress?code=YOUR_FUNCTION_KEY
 ```
 
-This flow keeps the original title, lead, and article text from the email. OpenAI is only used to detect the original title, lead, article text, categories, tags, and the featured image prompt.
+This flow keeps the original title, lead, and article text from the email. OpenAI is only used to detect the original title, lead, article text, categories, tags, the featured image prompt, and the Midjourney prompt.
 
 ## Azure deploy
 
@@ -376,6 +405,8 @@ Custom settings used by this project:
 - `WORDPRESS_DEFAULT_STATUS`
 - `WORDPRESS_DEFAULT_CATEGORY_IDS`
 - `WORDPRESS_ACF_LEAD_FIELD_NAME`
+- `WORDPRESS_ACF_BEST_CATEGORY_FIELD_NAME`
+- `WORDPRESS_ACF_MIDJOURNEY_PROMPT_FIELD_NAME`
 
 Do not replace Azure-managed settings like:
 
@@ -583,6 +614,32 @@ Default:
 lead
 ```
 
+### `WORDPRESS_ACF_BEST_CATEGORY_FIELD_NAME`
+
+ACF field name used for the best matching category key selected by OpenAI.
+
+Default:
+
+```text
+best_cat
+```
+
+### `WORDPRESS_ACF_MIDJOURNEY_PROMPT_FIELD_NAME`
+
+ACF field name used for the generated Midjourney prompt.
+
+Default:
+
+```text
+midjourney_prompt_en
+```
+
+The prompt is generated in English, uses a realistic style, is intended for a 2:1 image format, and always ends with:
+
+```text
+--ar 2:1 --q 2 --no logos, text, cartoon
+```
+
 ## Azure test
 
 1. In Azure Portal, open the Function App URL:
@@ -641,6 +698,7 @@ Expected result:
 - Request body contains readable text in `additional_instructions`.
 - The rewrite flow passes the instructions to OpenAI.
 - The article reflects the allowed instructions in `content_html`.
+- The Midjourney prompt is generated and stored in the configured WordPress ACF field.
 - Fixed editorial rules still take priority.
 
 ### Edge cases
@@ -665,5 +723,6 @@ Check:
 - `OPENAI_ORIGINAL_MODEL` is used for the original-mail flow
 - OpenAI web search is only used by the rewrite flow
 - Featured image generation can be enabled with `ENABLE_FEATURED_IMAGE_GENERATION=true`
+- Midjourney prompts are generated for both processing flows and stored in ACF
 - Additional instructions are optional and currently only used by the rewrite flow
 - TXT attachment parsing happens in Power Automate, not inside the Azure Function
