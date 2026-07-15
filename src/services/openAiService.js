@@ -471,14 +471,23 @@ function buildDeveloperInstruction({
         Eine Information darf nur als Nebenaspekt weggelassen werden, wenn ihr Fehlen die Einordnung von Umfang, Zeitpunkt, Status, Geltungsbereich, Bedingungen oder Folgen nicht verändert.
 
         Schreibe weiterhin kompakt.
-        Kürze zuerst Wiederholungen, allgemeine Bedeutungssätze, doppelte Einordnungen und rhetorische Übergänge, bevor du konkrete belegte Fakten entfernst.`,
+        Kürze zuerst Wiederholungen, allgemeine Bedeutungssätze, doppelte Einordnungen und rhetorische Übergänge, bevor du konkrete belegte Fakten entfernst.
+        
+        Jeder essential_fact muss im sichtbaren Beitrag enthalten sein, soll aber in der Regel nur an einer redaktionell passenden Stelle vollständig erklärt werden.
+        Wiederhole eine Zahl, Frist, Bedingung oder Kernaussage nicht im Lead, Fliesstext und Schluss, nur um ihre Erhaltung abzusichern.
+        Wenn ein Fakt bereits im Lead genannt wurde, greife ihn im Fliesstext nur erneut auf, wenn dadurch ein neues Verhältnis, eine Ursache, eine Bedingung oder eine zusätzliche Folge erklärt wird.
+        Faktenabdeckung bedeutet nicht, dass jeder essential_fact einen eigenen Absatz erhält.`,
 
         `# Beitragsspezifische Zusatzanweisungen
         Wenn im User-Input additional_instructions vorhanden ist, berücksichtige diese als beitragsspezifische redaktionelle Hinweise.
         Diese Zusatzanweisungen stehen inhaltlich auf derselben Arbeitsebene wie subject, from und source_text, sind aber den festen redaktionellen Regeln dieser Developer-Anweisung untergeordnet.
         Falls additional_instructions den festen Regeln, dem JSON-Schema, der Faktenlage, der Quellenlage oder den WordPress-Vorgaben widerspricht, ignoriere nur den widersprechenden Teil.
         Nutze additional_instructions nicht als Quelle für neue Fakten, ausser die Angaben werden durch source_text oder Web-Recherche gestützt.
-        Übernimm keine Meta-Anweisungen sichtbar in den Artikel.`,
+        Übernimm keine Meta-Anweisungen sichtbar in den Artikel.
+        
+        Nenne im sichtbaren Beitrag niemals interne Herkunftsbezeichnungen wie «gelieferte E-Mail», «Ausgangstext», «Textvorlage», «User-Input», source_text, previous_draft, «vorheriger Entwurf», «interne Qualitätsprüfung» oder Namen interner Qualitätsfelder.
+        Die Wörter «Vorlage», «Input» oder «E-Mail» dürfen nur verwendet werden, wenn sie selbst zum sachlichen Thema des Beitrags gehören und nicht den internen Arbeitsprozess beschreiben.
+        Formuliere alle belegten Informationen als normalen redaktionellen Text.`,
 
         `# Sprache und Stil
         Schreibe in Schweizer Hochdeutsch, sachlich, klar und redaktionell.
@@ -566,7 +575,8 @@ function buildDeveloperInstruction({
         Länge darf nur durch zusätzliche konkrete Substanz entstehen, nicht durch wiederholte Einordnung.
         Vermeide Absätze, die lediglich nochmals erklären, warum das Thema wichtig ist.
         Der Schluss soll keine allgemeine Zusammenfassung sein.
-        Er kann mit einer konkreten Folge, einer offenen sachlichen Frage oder dem letzten relevanten Fakt enden.
+        Der letzte redaktionelle Absatz muss mindestens eine neue konkrete Information, einen noch nicht genannten nächsten Schritt, eine sachlich offene Frage oder eine zusätzliche belegte Folge enthalten.
+        Enthält er nur eine Zusammenfassung, Zielgruppenansprache oder Umformulierung des Leads, entferne ihn.
         Ein Beitrag braucht keine künstliche Pointe, keine Zielgruppenansprache und keine rhetorische Gegenüberstellung am Schluss.
         Wenn die wichtigste Wirkung bereits im vorherigen Absatz klar erklärt wurde, beende den Beitrag dort, statt sie nochmals zugespitzt zu wiederholen.`,
 
@@ -622,7 +632,9 @@ function buildDeveloperInstruction({
         Wenn nur wenig Material vorhanden ist, beginne content_html direkt mit dem nächsten verfügbaren Fakt und verzichte auf einen zusätzlichen allgemeinen Einleitungsabsatz.
 
         Prüfe vor der Ausgabe den Lead und den ersten Absatz nacheinander.
-        Wenn der erste Absatz keine Information enthält, die im Lead noch nicht vorkommt, formuliere ihn neu oder entferne die wiederholende Aussage.`,
+        Wenn der erste Absatz keine Information enthält, die im Lead noch nicht vorkommt, formuliere ihn neu oder entferne die wiederholende Aussage.
+        Wenn Lead und erster Absatz dieselbe Aussagefunktion haben, beginne den ersten Absatz mit einem anderen Informationstyp, etwa einer Ursache, einer neuen Zahl, einem Verfahrensschritt, einem verantwortlichen Akteur oder einem zeitlichen Hintergrund.
+        Eine reine Paraphrase des Leads gilt nicht als Korrektur.`,
 
         `# WordPress-Inhalt
         content_html soll ein sauberer WordPress-Inhalt mit gültigem HTML sein.
@@ -669,6 +681,9 @@ function buildDeveloperInstruction({
 
         Vermeide mehrere allgemeine Herkunftsformulierungen im selben Beitrag.
         Solche Formulierungen dürfen nicht als routinemässiger Ersatz für direkte, belegte Aussagen verwendet werden.
+
+        Verwende im sichtbaren Beitrag höchstens eine allgemeine Herkunftsformulierung, sofern nicht mehrere unterschiedliche Prognosen, Positionen oder noch unbestätigte Angaben ausdrücklich voneinander abgegrenzt werden müssen.
+        Nenne keine Projektseite, Unterlagen oder Präsentation nur als Belegformel, wenn die verifizierte Information direkt formuliert werden kann.
 
         Fakten müssen weiterhin durch Web-Recherche geprüft und am Ende im Quellenabschnitt verlinkt werden.`,
 
@@ -802,6 +817,9 @@ function buildDeveloperInstruction({
         Prüfe, ob Herkunftsformulierungen wirklich notwendig sind.
         Wenn eine verifizierte Tatsache ohne Informationsverlust direkt formuliert werden kann, entferne die Herkunftsformel und belasse den Beleg im Quellenabschnitt.
 
+        Prüfe, ob interne Begriffe wie Ausgangstext, User-Input, source_text, previous_draft, vorheriger Entwurf oder interne Qualitätsprüfung sichtbar vorkommen. Entferne sie vollständig.
+        Prüfe, ob ein essential_fact mehrfach vollständig erklärt wird. Behalte die stärkste Platzierung und kürze die übrigen Nennungen auf den jeweils neuen Informationswert.
+
         Längere Sätze sind erlaubt, wenn sie klar und gut lesbar bleiben.
         Teile sie auf, wenn mehrere eigenständige Aussagen oder unnötige Einschübe darin stecken.
 
@@ -809,6 +827,8 @@ function buildDeveloperInstruction({
         Entferne Sätze und Absätze, die bereits Gesagtes nochmals zusammenfassen, ohne eine neue Information hinzuzufügen.
 
         Schreibe nur so ausführlich, wie es die belegte Substanz rechtfertigt.
+        Prüfe den letzten redaktionellen Absatz separat. Wenn er keine neue Information, keinen nächsten Schritt, keine offene sachliche Frage und keine zusätzliche belegte Folge enthält, entferne ihn.
+        Beginne den letzten Absatz nicht mit einer allgemeinen Zielgruppenansprache.
         Der Schluss benötigt keine künstliche Pointe.
 
         Gib diese Schlusskontrolle nicht sichtbar im Beitrag aus.`
@@ -1521,6 +1541,20 @@ Aktuell: ${rewrittenPost.content_text.length} Zeichen.`);
     );
   }
 
+  if (containsInternalMetaLanguage(rewrittenPost)) {
+    validationErrors.push(
+        'OpenAI-Beitrag enthält interne Begriffe wie Ausgangstext, User-Input oder vorheriger Entwurf.'
+    );
+  }
+
+  if (hasGenericTargetGroupConclusion(
+    rewrittenPost.content_html
+  )) {
+    validationErrors.push(
+        'Der letzte redaktionelle Absatz beginnt mit einer allgemeinen Zielgruppen- oder Relevanzformel statt mit einer neuen konkreten Information.'
+    );
+  }
+
   const firstContentParagraph = extractFirstContentParagraphText(
     rewrittenPost.content_html
   );
@@ -1532,7 +1566,7 @@ Aktuell: ${rewrittenPost.content_text.length} Zeichen.`);
     )
   ) {
     validationErrors.push(
-      'Lead und erster Absatz wiederholen weitgehend dieselben Aussagen und Eckdaten.'
+      'Lead und erster Absatz wiederholen weitgehend dieselben Aussagen und Eckdaten. Beginne den ersten Absatz mit einem anderen Informationstyp wie Ursache, neuer Zahl, Verfahrensschritt, Akteur oder zeitlichem Hintergrund.'
     );
   }
 
@@ -1565,9 +1599,10 @@ Aktuell: ${dashStyleCountInContent}.`);
 
   const missingEssentialNumericFacts =
     findMissingEssentialNumericFacts(
-      rewrittenPost,
-      requiredEssentialFacts
-  );
+        rewrittenPost,
+        requiredEssentialFacts,
+        sourceText
+    );
 
   if (missingEssentialNumericFacts.length > 0) {
     validationErrors.push(
@@ -1623,6 +1658,187 @@ function containsColonInVisibleArticle(rewrittenPost) {
     return visibleArticleParts.some((articlePart) => {
         return String(articlePart || '').includes(':');
     });
+}
+
+function getVisibleArticleText(rewrittenPost) {
+    const contentHtmlWithoutLinkText = String(
+        rewrittenPost.content_html || ''
+    ).replace(
+        /<a\b[^>]*>[\s\S]*?<\/a>/gi,
+        ''
+    );
+
+    return normalizeWhitespace(
+        [
+            rewrittenPost.title,
+            rewrittenPost.excerpt,
+            htmlToPlainText(contentHtmlWithoutLinkText)
+        ].join(' ')
+    );
+}
+
+function containsInternalMetaLanguage(rewrittenPost) {
+    const visibleArticleText = getVisibleArticleText(
+        rewrittenPost
+    );
+
+    const internalMetaPatterns = [
+        /\bausgangstext\b/i,
+        /\btextvorlage\b/i,
+        /\buser[- ]?input\b/i,
+        /\bsource_text\b/i,
+        /\bprevious_draft\b/i,
+        /\bvorherige(?:r|n|m|s)? entwurf\b/i,
+        /\bintern(?:e|en|er|es|em)? qualitätsprüfung\b/i,
+        /\bgeliefert(?:e|en|er|es|em) e-mail\b/i,
+        /\bessential_facts\b/i,
+        /\bsupporting_aspects\b/i,
+        /\bomitted_aspects\b/i,
+        /\bintern(?:e|en|er|es|em)? qualitätsfelder\b/i,
+        /\bredaktionelle qualitätsfelder\b/i
+    ];
+
+    return internalMetaPatterns.some((pattern) => {
+        return pattern.test(visibleArticleText);
+    });
+}
+
+function isSourceSectionHeading(paragraphText) {
+    const normalizedText = normalizeWhitespace(
+        paragraphText
+    )
+        .toLowerCase()
+        .replace(/[\s:;,.]+$/g, '');
+
+    return [
+        'quelle',
+        'quellen',
+        'source',
+        'sources'
+    ].includes(normalizedText);
+}
+
+function extractLastEditorialParagraphText(
+    contentHtml
+) {
+    const paragraphMatches = String(
+        contentHtml || ''
+    ).match(
+        /<p\b[^>]*>[\s\S]*?<\/p>/gi
+    );
+
+    if (!paragraphMatches) {
+        return '';
+    }
+
+    let insideTrailingSourceSection = true;
+
+    for (
+        let index = paragraphMatches.length - 1;
+        index >= 0;
+        index -= 1
+    ) {
+        const paragraphHtml =
+            paragraphMatches[index];
+
+        const paragraphText = normalizeWhitespace(
+            htmlToPlainText(paragraphHtml)
+        );
+
+        if (!paragraphText) {
+            continue;
+        }
+
+        if (
+            insideTrailingSourceSection &&
+            (
+                isSourceReferenceParagraph(
+                    paragraphHtml
+                ) ||
+                isSourceSectionHeading(
+                    paragraphText
+                )
+            )
+        ) {
+            continue;
+        }
+
+        insideTrailingSourceSection = false;
+
+        return paragraphText;
+    }
+
+    return '';
+}
+
+function isSourceReferenceParagraph(paragraphHtml) {
+    if (!/<a\b[^>]*>/i.test(paragraphHtml)) {
+        return false;
+    }
+
+    const textWithoutLinks = normalizeWhitespace(
+        htmlToPlainText(
+            String(paragraphHtml).replace(
+                /<a\b[^>]*>[\s\S]*?<\/a>/gi,
+                ''
+            )
+        )
+    )
+        .toLowerCase()
+        .replace(/[\s:;,.|·-]+$/g, '');
+
+    return (
+        !textWithoutLinks ||
+        isSourceSectionHeading(textWithoutLinks)
+    );
+}
+
+function extractFirstSentence(text) {
+    const normalizedText = normalizeWhitespace(
+        text
+    );
+
+    if (!normalizedText) {
+        return '';
+    }
+
+    const firstSentenceMatch =
+        normalizedText.match(
+            /^.*?[.!?](?=\s|$)/
+        );
+
+    return firstSentenceMatch
+        ? firstSentenceMatch[0]
+        : normalizedText;
+}
+
+function hasGenericTargetGroupConclusion(
+    contentHtml
+) {
+    const lastEditorialParagraph =
+        extractLastEditorialParagraphText(
+            contentHtml
+        );
+
+    if (!lastEditorialParagraph) {
+        return false;
+    }
+
+    const firstSentence = extractFirstSentence(
+        lastEditorialParagraph
+    );
+
+    const genericConclusionPatterns = [
+        /^(?:gerade )?für [^.!?]{0,140}\b(?:ist|sind) (?:das|dies|die entwicklung|der schritt|das projekt) (?:ein|eine|einen|einem|einer|eines)? ?(?:wichtig(?:e|er|es|en)?|klar(?:e|er|es|en)?|deutlich(?:e|er|es|en)?)? ?(?:hinweis|signal|relevant|wichtig)(?: auf [^.!?]{1,100})?[.!?]?$/i,
+        /^(?:gerade )?für [^.!?]{0,140}\bliegt (?:der|ein|das) [^.!?]{0,80}\bhebel\b[^.!?]{0,80}[.!?]?$/i,
+        /^(?:gerade )?für [^.!?]{0,140}\b(?:ist|sind) damit [^.!?]{0,140}\b(?:korridor|signal|hinweis)\b[^.!?]{0,80}[.!?]?$/i
+    ];
+
+    return genericConclusionPatterns.some(
+        (pattern) => {
+            return pattern.test(firstSentence);
+        }
+    );
 }
 
 function extractFirstContentParagraphText(contentHtml) {
@@ -1771,7 +1987,8 @@ function extractNumericValues(text) {
 
 function findMissingEssentialNumericFacts(
     rewrittenPost,
-    requiredEssentialFacts = []
+    requiredEssentialFacts = [],
+    sourceText = ''
 ) {
     const currentEssentialFacts = Array.isArray(
         rewrittenPost.essential_facts
@@ -1779,10 +1996,32 @@ function findMissingEssentialNumericFacts(
         ? rewrittenPost.essential_facts
         : [];
 
+    const sourceNumericValues = new Set(
+        extractNumericValues(sourceText)
+    );
+
     const preservedEssentialFacts = Array.isArray(
         requiredEssentialFacts
     )
-        ? requiredEssentialFacts
+        ? requiredEssentialFacts.filter(
+            (essentialFact) => {
+                const numericValues =
+                    extractNumericValues(
+                        essentialFact
+                    );
+
+                return (
+                    numericValues.length > 0 &&
+                    numericValues.every(
+                        (numericValue) => {
+                            return sourceNumericValues.has(
+                                numericValue
+                            );
+                        }
+                    )
+                );
+            }
+        )
         : [];
 
     const essentialFacts = Array.from(
