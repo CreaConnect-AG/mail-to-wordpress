@@ -88,7 +88,8 @@ async function rewriteMailWithOpenAi({ subject, from, sourceText, additionalInst
         sourceText,
         additionalInstructions,
         forceStrongRewrite: true,
-        useStrictLengthRules
+        useStrictLengthRules,
+        rewriteFeedback: firstValidationErrors
     });
 
     const normalizedSecondAttempt = normalizeGeneratedPost(secondAttempt, useStrictLengthRules);
@@ -134,16 +135,18 @@ function shouldUseStrictLengthRules(sourceText) {
 }
 
 async function requestOpenAiRewrite({
-  subject,
-  from,
-  sourceText,
-  additionalInstructions = '',
-  forceStrongRewrite,
-  useStrictLengthRules
+    subject,
+    from,
+    sourceText,
+    additionalInstructions = '',
+    forceStrongRewrite,
+    useStrictLengthRules,
+    rewriteFeedback = []
 }) {
     const developerInstruction = buildDeveloperInstruction({
         forceStrongRewrite,
-        useStrictLengthRules
+        useStrictLengthRules,
+        rewriteFeedback
     });
 
     const responseSchema = buildResponseSchema({
@@ -350,7 +353,11 @@ function getCurrentSwissDateText() {
     }).format(new Date());
 }
 
-function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules }) {
+function buildDeveloperInstruction({
+    forceStrongRewrite,
+    useStrictLengthRules,
+    rewriteFeedback = []
+}) {
     const currentDateText = getCurrentSwissDateText();
 
     const instructionSections = [
@@ -459,6 +466,26 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Verwende bei grossen Zahlen eine einheitliche Schweizer oder deutschsprachige Schreibweise, etwa 1’040,4 Mrd. Franken oder 1.040,4 Mrd. Euro, aber keine gemischten Formate wie 1,040,4 Mrd.
         Achte auf korrekte Bindestriche bei gekoppelten Begriffen wie Energie- und Modernisierungskosten, Transaktions- und Finanzierungsfähigkeit oder Netto- und Bruttomieten.`,
 
+        `# Satzbau und Informationsdichte
+        Bevorzuge kurze und mittellange Sätze, ohne den Text in eine Folge abgehackter Einzelsätze zu verwandeln.
+        Die Satzlänge darf natürlich variieren. Klarheit und Lesefluss sind wichtiger als eine feste Wortzahl.
+        Prüfe bei längeren Sätzen, ob mehrere eigenständige Aussagen darin enthalten sind oder ob die Hauptaussage durch Nebensätze, Einschübe und Einschränkungen verdeckt wird. Teile den Satz in diesem Fall sinnvoll auf.
+        Ein längerer Satz ist erlaubt, wenn der Zusammenhang dadurch verständlicher bleibt und keine künstliche Komplexität entsteht.
+        Jeder Satz soll eine erkennbare Funktion erfüllen. Er soll eine Tatsache nennen, einen Zusammenhang erklären, eine Folge zeigen, eine Position wiedergeben, einen Gegensatz verdeutlichen oder den Beitrag sinnvoll weiterführen.
+        Wiederhole eine Aussage nicht nur mit anderen Worten und füge keine Sätze ein, die lediglich Wichtigkeit, Relevanz oder Dynamik behaupten.
+        Wenn Input und Recherche wenig Substanz liefern, schreibe kompakter. Verlängere den Beitrag nicht mit allgemeinen Einordnungen oder mehrfach formulierten Schlussfolgerungen.
+        Verwende Gegenüberstellungen mit «nicht», «sondern», «statt» oder ähnlichen Konstruktionen nur, wenn tatsächlich zwei unterschiedliche Möglichkeiten, Positionen oder Wirkungen gegenübergestellt werden.
+        Wenn der verneinte Teil ohne Informationsverlust entfernt werden kann, formuliere die eigentliche Aussage direkt.
+        Schreibe beispielsweise «Die Überbauung entsteht in einer einzigen Etappe.» statt «Die Überbauung soll nicht in mehreren Abschnitten, sondern in einer einzigen Etappe realisiert werden.»
+        Eine Formulierung wie «Der entscheidende Hebel liegt nicht in den Kriterien, sondern in der Zusatzklausel» ist erlaubt, wenn genau dieser Gegensatz für das Verständnis wichtig ist.
+        Vermeide Formulierungen wie «Das ist mehr als ein Terminentscheid», «Damit setzt das Projekt ein wichtiges Zeichen» oder «Die Entwicklung ist für den Markt von Bedeutung», wenn danach keine konkrete und belegte Wirkung erklärt wird.`,
+
+        `# Zeichensetzung
+        Verwende im sichtbaren redaktionellen Beitrag keine Doppelpunkte.
+        Diese Vorgabe gilt für title, excerpt, content_html, Fliesstext und Zwischentitel.
+        Formuliere Erklärungen, Folgerungen und Aufzählungen stattdessen als vollständige Sätze oder verteile sie auf mehrere Sätze.
+        Doppelpunkte in technischen URLs, href-Attributen, source_references und nicht sichtbaren technischen Feldern sind von dieser Regel ausgenommen.`,
+
         `# Redaktionelle Verdichtung
         Schreibe nur so lang, wie es die Substanz rechtfertigt.
         Ein einzelnes Ereignis, eine Personalie, ein politischer Entscheid oder eine Unternehmensmeldung soll kompakt bleiben.
@@ -470,17 +497,20 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         `# Titel
         Der Titel muss immer neu formuliert werden und darf niemals dem Originaltitel entsprechen oder ihm nur leicht umgestellt ähneln.
         Wähle für den Titel eine neue, redaktionelle und prägnante Formulierung mit maximal ${maximumTitleLength} Zeichen.
-        Der Titel soll den konkreten Nachrichtenwert oder Markteffekt benennen. Gute Titel zeigen, was sich verändert, wo der Druck entsteht, welche Entwicklung relevant ist oder welche Entscheidung bevorsteht.
+        Der Titel soll den konkreten Nachrichtenwert oder Markteffekt benennen. Gute Titel zeigen, was sich verändert, wo eine Entwicklung stattfindet, welche Wirkung entsteht oder welche Entscheidung getroffen wurde.
         Vermeide sehr allgemeine Titel, die auch zu vielen anderen Artikeln passen würden, etwa «Politik rückt ins Zentrum», «Markt im Fokus», «Preise unter Druck», «Neue Dynamik am Markt», «Wenn Preise zur Last werden» oder ähnliche austauschbare Formulierungen.
         Vermeide zu metaphorische, dramatische oder boulevardeske Titel. Der Titel soll sachlich, klar und immobilienwirtschaftlich wirken.
-        Bevorzuge konkrete Titel mit Ort, Markt, Nutzung, Entwicklung oder Wirkung, wenn dies ohne Firmennamen möglich ist. Beispiele für gute Richtung: «Zug vermisst den Mietmarkt», «Standorte entscheiden stärker», «Wohnmarkt bremst Wirtschaft», «Wiederaufbau erhöht Baudruck», «Zürich prüft Wohnregeln».
+        Bevorzuge konkrete Titel mit Ort, Nutzung, Projektart, Entwicklung, Entscheid oder Wirkung.
         Der Titel darf keinen Doppelpunkt enthalten.
         Im Titel dürfen keine Gedankenstriche, Halbgeviertstriche oder Bindestrich-Konstruktionen als Stilmittel vorkommen.
-        Normale orthografische Bindestriche sind im Titel nur erlaubt, wenn sie für ein korrektes zusammengesetztes Wort nötig sind. Vermeide sie aber, wenn eine gleich gute Formulierung ohne Bindestrich möglich ist.
-        Verwende im Titel keine Firmennamen, Markennamen oder Produktnamen, ausser der Beitrag ist ohne diesen Namen nicht verständlich.
+        Normale orthografische Bindestriche sind im Titel nur erlaubt, wenn sie für ein korrektes zusammengesetztes Wort nötig sind. Vermeide sie, wenn eine gleich gute Formulierung ohne Bindestrich möglich ist.
+        Im Titel dürfen niemals Firmennamen, Unternehmensnamen, Markennamen oder Produktnamen vorkommen.
+        Diese Regel gilt ohne Ausnahme. Sie gilt auch dann, wenn das Unternehmen selbst Träger der Nachricht ist.
+        Stelle stattdessen den Ort, das Projekt, die Nutzung, die Grössenordnung, den Entscheid, den Konflikt oder die konkrete Wirkung ins Zentrum.
+        Namen von Städten, Gemeinden, Kantonen, Behörden und politischen Institutionen sind erlaubt, weil sie nicht als Firmennamen gelten.
+        Projektnamen sind erlaubt, sofern sie nicht zugleich ein Firmen-, Marken- oder Produktname sind und für einen verständlichen Titel benötigt werden.
         Der Titel darf keine Kausalität, Zuspitzung oder direkte Folge behaupten, die aus Input und Recherche nicht klar hervorgeht.
         Vermeide Titel, die einen Kontextfaktor als Ursache darstellen, wenn er im Beitrag nur eine Einordnung oder ein Nebenaspekt ist.
-        Verwende Firmennamen, Markennamen oder Produktnamen im Titel nur, wenn die konkrete Firma selbst Trägerin der Nachricht ist oder der Titel ohne diesen Namen zu allgemein oder missverständlich würde.
         Der Titel soll wie eine kompakte redaktionelle Zeile wirken, nicht wie eine Kapitelüberschrift und nicht wie ein SEO-Satz.
         Bevorzuge konkrete Verben und klare Wirkungen.`,
 
@@ -494,6 +524,18 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Er soll nicht nur zusammenfassen, sondern erklären, welche Veränderung, welcher Konflikt, welche Folge oder welche Chance im Beitrag steckt.
         Der Textauszug soll konkret sein und möglichst eine Zahl, einen Ort, ein Projekt, eine Entscheidung, eine Entwicklung oder eine direkte Wirkung enthalten, wenn dies sachlich passt.
         Vermeide austauschbare Zusammenfassungen und allgemeine Relevanzsätze.`,
+
+        `# Lead und erster Absatz
+        Der Textauszug wird als Lead des Beitrags verwendet.
+        Lead und erster Absatz behandeln denselben Nachrichtenkern, dürfen diesen aber nicht einfach zweimal zusammenfassen.
+        Der Lead soll die stärkste Nachricht, den Gegenstand und die wichtigste erkennbare Wirkung kompakt vermitteln.
+        Der erste Absatz von content_html soll den Beitrag danach weiterführen. Er kann beispielsweise die Vorgeschichte, den Auslöser, eine Verzögerung, einen politischen Ursprung, eine frühere Planung, eine verantwortliche Person, einen Konflikt, eine Reaktion oder einen nächsten Umsetzungsschritt erklären.
+        Lead und erster Absatz dürfen denselben Ort, dasselbe Projekt und einzelne zentrale Eckdaten nennen, wenn dies für das Verständnis notwendig ist.
+        Vermeide aber, dieselbe Kombination aus Ort, Termin, Anzahl, Investitionssumme und Hauptaussage direkt nacheinander zu wiederholen.
+        Formuliere den ersten Absatz nicht bloss als sprachliche Variante des Leads.
+        Wenn nur wenige Informationen vorhanden sind, erfinde keinen künstlich neuen Blickwinkel.
+        Beginne den ersten Absatz stattdessen mit dem nächsten belegten Detail und halte ihn kompakt.
+        Prüfe vor der Ausgabe, ob der erste Absatz gegenüber dem Lead einen erkennbaren zusätzlichen Informationswert bietet.`,
 
         `# WordPress-Inhalt
         content_html soll ein sauberer WordPress-Inhalt mit gültigem HTML sein.
@@ -581,6 +623,27 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         );
     }
 
+    if (
+        Array.isArray(rewriteFeedback) &&
+        rewriteFeedback.length > 0
+    ) {
+        instructionSections.push(
+            `# Korrekturen am vorherigen Entwurf
+            Der vorherige Entwurf wurde bei der internen Qualitätsprüfung beanstandet.
+
+            ${rewriteFeedback
+                .map((validationError) => {
+                    return `- ${validationError}`;
+                })
+                .join('\n')}
+
+            Behebe die genannten Punkte gezielt.
+            Formuliere den Beitrag nur dort neu, wo es für die Korrektur notwendig ist.
+            Verändere keine korrekten Fakten und erfinde keine zusätzlichen Angaben, um einen Fehler zu umgehen.
+            Prüfe insbesondere Titel, Lead, ersten Absatz und sichtbare Zeichensetzung erneut.`
+        );
+    }
+
     if (useStrictLengthRules) {
         instructionSections.push(
             `# Längenregeln
@@ -602,6 +665,20 @@ function buildDeveloperInstruction({ forceStrongRewrite, useStrictLengthRules })
         Fülle supporting_aspects mit höchstens drei Aspekten, die den redaktionellen Fokus direkt stützen.
         Fülle omitted_aspects mit wichtigen Input- oder Rechercheaspekten, die bewusst nicht oder nur sehr knapp verwendet wurden, weil sie den Beitrag sonst thematisch überladen würden.
         Diese Qualitätsfelder dienen der internen Prüfung. content_html darf sie nicht als sichtbare Liste oder Meta-Erklärung ausgeben.`
+    );
+
+    instructionSections.push(
+        `# Schlusskontrolle
+        Prüfe den fertigen Beitrag vor der JSON-Ausgabe nochmals vollständig.
+        Im sichtbaren redaktionellen Text darf kein Doppelpunkt vorkommen.
+        Der Titel darf keinen Firmen-, Unternehmens-, Marken- oder Produktnamen enthalten.
+        Der Lead und der erste Absatz dürfen nicht dieselben Aussagen und Eckdaten lediglich unterschiedlich formulieren.
+        Der erste Absatz soll den Lead sinnvoll weiterführen, ohne einen künstlich neuen Themenstrang zu eröffnen.
+        Längere Sätze sind erlaubt, wenn sie klar und gut lesbar bleiben. Teile sie auf, wenn mehrere eigenständige Aussagen oder unnötige Einschübe darin stecken.
+        Gegenüberstellungen mit «nicht», «sondern» oder «statt» sollen nur verwendet werden, wenn ein echter inhaltlicher Gegensatz besteht.
+        Entferne Sätze und Absätze, die lediglich Wichtigkeit behaupten oder bereits Gesagtes nochmals einordnen.
+        Schreibe nur so ausführlich, wie es die belegte Substanz rechtfertigt.
+        Gib diese Schlusskontrolle nicht sichtbar im Beitrag aus.`
     );
 
     instructionSections.push(
@@ -1289,8 +1366,25 @@ function buildRewriteValidationErrors({
 Aktuell: ${rewrittenPost.content_text.length} Zeichen.`);
   }
 
-  if (rewrittenPost.title.includes(':')) {
-    validationErrors.push('OpenAI-Titel enthält einen Doppelpunkt.');
+  if (containsColonInVisibleArticle(rewrittenPost)) {
+    validationErrors.push(
+      'OpenAI-Beitrag enthält einen Doppelpunkt im sichtbaren redaktionellen Text.'
+    );
+  }
+
+  const firstContentParagraph = extractFirstContentParagraphText(
+    rewrittenPost.content_html
+  );
+
+  if (
+    isLeadTooSimilarToFirstParagraph(
+      rewrittenPost.excerpt,
+      firstContentParagraph
+    )
+  ) {
+    validationErrors.push(
+      'Lead und erster Absatz wiederholen weitgehend dieselben Aussagen und Eckdaten.'
+    );
   }
 
   if (rewrittenPost.title.length > maximumTitleLength) {
@@ -1341,6 +1435,161 @@ Aktuell: ${dashStyleCountInContent}.`);
   }
 
   return validationErrors;
+}
+
+function containsColonInVisibleArticle(rewrittenPost) {
+    const contentHtmlWithoutLinkText = String(
+        rewrittenPost.content_html || ''
+    ).replace(
+        /<a\b[^>]*>[\s\S]*?<\/a>/gi,
+        ''
+    );
+
+    const visibleContentText = htmlToPlainText(
+        contentHtmlWithoutLinkText
+    );
+
+    const visibleArticleParts = [
+        rewrittenPost.title,
+        rewrittenPost.excerpt,
+        visibleContentText
+    ];
+
+    return visibleArticleParts.some((articlePart) => {
+        return String(articlePart || '').includes(':');
+    });
+}
+
+function extractFirstContentParagraphText(contentHtml) {
+    const firstParagraphMatch = String(contentHtml || '').match(
+        /<p\b[^>]*>[\s\S]*?<\/p>/i
+    );
+
+    if (!firstParagraphMatch) {
+        return '';
+    }
+
+    return normalizeWhitespace(
+        htmlToPlainText(firstParagraphMatch[0])
+    );
+}
+
+function isLeadTooSimilarToFirstParagraph(
+    lead,
+    firstParagraph
+) {
+    const normalizedLead = normalizeComparisonText(lead);
+    const normalizedFirstParagraph =
+        normalizeComparisonText(firstParagraph);
+
+    if (!normalizedLead || !normalizedFirstParagraph) {
+        return false;
+    }
+
+    if (normalizedLead === normalizedFirstParagraph) {
+        return true;
+    }
+
+    const shorterTextLength = Math.min(
+        normalizedLead.length,
+        normalizedFirstParagraph.length
+    );
+
+    if (
+        shorterTextLength >= 80 &&
+        (
+            normalizedLead.includes(normalizedFirstParagraph) ||
+            normalizedFirstParagraph.includes(normalizedLead)
+        )
+    ) {
+        return true;
+    }
+
+    const leadWords = extractMeaningfulComparisonWords(
+        normalizedLead
+    );
+
+    const firstParagraphWords =
+        extractMeaningfulComparisonWords(
+            normalizedFirstParagraph
+        );
+
+    if (
+        Math.min(
+            leadWords.length,
+            firstParagraphWords.length
+        ) < 6
+    ) {
+        return false;
+    }
+
+    const wordOverlapRatio = calculateWordOverlapRatio(
+        leadWords,
+        firstParagraphWords
+    );
+
+    const fiveWordOverlapRatio =
+        calculateShingleOverlapRatio(
+            normalizedLead,
+            normalizedFirstParagraph,
+            5
+        );
+
+    const sharedNumericValueCount =
+        countSharedNumericValues(
+            lead,
+            firstParagraph
+        );
+
+    if (
+        wordOverlapRatio >= 0.85 &&
+        fiveWordOverlapRatio >= 0.25
+    ) {
+        return true;
+    }
+
+    if (
+        sharedNumericValueCount >= 2 &&
+        wordOverlapRatio >= 0.65
+    ) {
+        return true;
+    }
+
+    return fiveWordOverlapRatio >= 0.55;
+}
+
+function countSharedNumericValues(firstText, secondText) {
+    const firstNumericValues = new Set(
+        extractNumericValues(firstText)
+    );
+
+    const secondNumericValues = new Set(
+        extractNumericValues(secondText)
+    );
+
+    let sharedNumericValueCount = 0;
+
+    for (const numericValue of firstNumericValues) {
+        if (secondNumericValues.has(numericValue)) {
+            sharedNumericValueCount += 1;
+        }
+    }
+
+    return sharedNumericValueCount;
+}
+
+function extractNumericValues(text) {
+    const numericMatches = String(text || '').match(
+        /\b\d[\d’'.]*\b/g
+    );
+
+    if (!numericMatches) {
+        return [];
+    }
+
+    return numericMatches.map((numericValue) => {
+        return numericValue.replace(/[’'.]/g, '');
+    });
 }
 
 function buildEditorialFocusValidationErrors(rewrittenPost) {
