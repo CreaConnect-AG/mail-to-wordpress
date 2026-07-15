@@ -89,7 +89,10 @@ async function rewriteMailWithOpenAi({ subject, from, sourceText, additionalInst
         additionalInstructions,
         forceStrongRewrite: true,
         useStrictLengthRules,
-        rewriteFeedback: firstValidationErrors
+        rewriteFeedback: firstValidationErrors,
+        previousDraft: buildRewriteDraftForPrompt(
+            enrichedFirstAttempt
+        )
     });
 
     const normalizedSecondAttempt = normalizeGeneratedPost(secondAttempt, useStrictLengthRules);
@@ -102,7 +105,9 @@ async function rewriteMailWithOpenAi({ subject, from, sourceText, additionalInst
         sourceText,
         rewrittenPost: enrichedSecondAttempt,
         useStrictLengthRules,
-        includeEditorialFocusValidation: false
+        includeEditorialFocusValidation: true,
+        requiredEssentialFacts:
+            enrichedFirstAttempt.essential_facts
     });
 
     if (secondValidationErrors.length > 0) {
@@ -141,7 +146,8 @@ async function requestOpenAiRewrite({
     additionalInstructions = '',
     forceStrongRewrite,
     useStrictLengthRules,
-    rewriteFeedback = []
+    rewriteFeedback = [],
+    previousDraft = null
 }) {
     const developerInstruction = buildDeveloperInstruction({
         forceStrongRewrite,
@@ -178,6 +184,7 @@ async function requestOpenAiRewrite({
                         from,
                         source_text: sourceText,
                         additional_instructions: normalizeAdditionalInstructionsForPrompt(additionalInstructions),
+                        previous_draft: previousDraft,
                         allowed_category_options: getAllowedCategoryOptionsForAi()
                     },
                     null,
@@ -436,11 +443,35 @@ function buildDeveloperInstruction({
         Zentrale Fakten, Zahlen, Akteure, Orte und Aussagen aus dem Input, die den Nachrichtenwert tragen, müssen im Beitrag erhalten bleiben oder bewusst und sachlich begründet weggelassen werden.
         Warnungen, Prognosen, Investitionsvolumen, Verschuldungskennzahlen, regulatorische Fristen oder konkrete Unternehmensangaben dürfen nicht ausgelassen werden, wenn sie für den Nachrichtenkern entscheidend sind.
         Solche Angaben müssen aber sauber eingeordnet werden: Prognosen, Einschätzungen und Warnungen sind nicht als bereits eingetretene Tatsachen darzustellen.
-        Der Beitrag soll nicht alle Informationen vollständig abarbeiten.
-        Wähle die stärksten Fakten und ordne sie so an, dass sie eine klare Hauptaussage tragen.
-        Lasse Nebeninformationen weg, wenn sie den Text nur vollständiger, aber nicht stärker machen.
+        Der Beitrag muss nicht jede echte Nebeninformation übernehmen.
+        Er muss jedoch alle belegten Fakten enthalten, die für Nachrichtenwert, Grössenordnung, Status, Zeitpunkt, Einschränkungen oder praktische Folgen wesentlich sind.
+        Ordne diese Fakten so an, dass sie eine klare Hauptaussage tragen.
+        Kürze bevorzugt Wiederholungen und allgemeine Einordnungen statt konkrete Informationen.
         Vermeide wiederholte Einordnungen.
         Jede neue Passage soll eine neue Information, eine belegte Folge, eine konkrete Erklärung oder eine für das Verständnis notwendige Einordnung enthalten.`,
+
+        `# Faktenabdeckung und Informationsverlust
+        Redaktionelle Verdichtung bedeutet Auswahl und Gewichtung, aber keinen Verlust sachlich notwendiger Informationen.
+
+        Ordne die belegten Informationen vor dem Schreiben intern in drei Gruppen ein.
+        Die erste Gruppe enthält den Nachrichtenkern.
+        Die zweite Gruppe enthält unverzichtbare Fakten, die Umfang, Status, Zeitpunkt, Bedingungen, Ausnahmen oder praktische Folgen verständlich machen.
+        Die dritte Gruppe enthält echte Nebenaspekte, die ohne Bedeutungsverlust weggelassen werden können.
+
+        Unverzichtbar sind insbesondere konkrete Zahlen zur Grössenordnung, Kosten, Fläche, Menge oder Veränderung, wenn sie die Bedeutung des Themas verständlich machen.
+        Ebenso unverzichtbar sind relevante Termine, Fristen, Projektphasen, Beschlussstände, räumliche Einschränkungen, Bedingungen, Ausnahmen, verantwortliche Akteure und konkrete nächste Schritte.
+
+        Lasse eine belegte Information nicht allein deshalb weg, weil bereits eine andere Zahl oder Einordnung zum selben Thema vorkommt.
+        Prüfe, ob die Informationen unterschiedliche Funktionen erfüllen.
+        Eine Zahl kann die aktuelle Veränderung zeigen, eine weitere die Grössenordnung und eine dritte den zeitlichen oder finanziellen Rahmen.
+
+        Aktuelle konkrete Angaben haben Vorrang vor allgemeinen historischen Vergleichen.
+        Historische Werte dürfen aktuelle Kennzahlen ergänzen, aber nicht ersetzen, wenn die aktuellen Werte für den Nachrichtenkern relevant sind.
+
+        Eine Information darf nur als Nebenaspekt weggelassen werden, wenn ihr Fehlen die Einordnung von Umfang, Zeitpunkt, Status, Geltungsbereich, Bedingungen oder Folgen nicht verändert.
+
+        Schreibe weiterhin kompakt.
+        Kürze zuerst Wiederholungen, allgemeine Bedeutungssätze, doppelte Einordnungen und rhetorische Übergänge, bevor du konkrete belegte Fakten entfernst.`,
 
         `# Beitragsspezifische Zusatzanweisungen
         Wenn im User-Input additional_instructions vorhanden ist, berücksichtige diese als beitragsspezifische redaktionelle Hinweise.
@@ -467,11 +498,14 @@ function buildDeveloperInstruction({
         Gute Zwischentitel benennen eine Entwicklung, Wirkung oder Frage.
         Vermeide generische Zwischentitel wie «Relevanz für die Branche», «Weitere Entwicklung», «Ausblick», «Hintergrund» oder «Signal für den Markt».
         Vermeide werbliche Sprache, PR-Floskeln, unkritische Formulierungen, Spam-Phrasen, fremdsprachige Fragmente, Sonderzeichenketten und irrelevante Zusätze.
-        Vermeide Gedankenstriche, Halbgeviertstriche und Bindestriche als stilistisches Satzzeichen im gesamten zurückgegebenen Text.
+        Verwende keine freistehenden Gedankenstriche, Halbgeviertstriche oder Bindestriche als stilistisches Satzzeichen.
+        Gemeint sind Zeichen, die zwischen Satzteilen stehen und auf beiden Seiten von Leerzeichen umgeben sind.
         Im content_html ist höchstens ein einzelner Gedankenstrich erlaubt, und nur wenn er sprachlich wirklich notwendig ist.
-        Normale orthografische Bindestriche in zusammengesetzten Begriffen sind erlaubt und sollen korrekt verwendet werden, etwa Netto- und Bruttomieten, Gross- und Mittelstädte, 3-Zimmer-Wohnung, IW-Prognose, Loan-to-Value-Verhältnis oder Exit-Potenzial.
-        Verwende bei grossen Zahlen eine einheitliche Schweizer oder deutschsprachige Schreibweise, etwa 1’040,4 Mrd. Franken oder 1.040,4 Mrd. Euro, aber keine gemischten Formate wie 1,040,4 Mrd.
-        Achte auf korrekte Bindestriche bei gekoppelten Begriffen wie Energie- und Modernisierungskosten, Transaktions- und Finanzierungsfähigkeit oder Netto- und Bruttomieten.`,
+        Orthografisch notwendige Bindestriche sind davon ausdrücklich ausgenommen und müssen immer korrekt gesetzt werden.
+        Entferne niemals einen Bindestrich, der für eine korrekte Zusammensetzung, gekoppelte Wortgruppe, Abkürzungsverbindung, mehrteilige Bezeichnung oder einen Eigennamen erforderlich ist.
+        Prüfe insbesondere Verbindungen mit gemeinsamem zweiten Wortbestandteil, Zusammensetzungen mit Abkürzungen sowie mehrteilige Projekt-, Standort- und Fachbegriffe.
+        Die Vermeidung stilistischer Gedankenstriche darf niemals zu einer orthografisch falschen Schreibweise führen.
+        Verwende bei grossen Zahlen eine einheitliche Schweizer oder deutschsprachige Schreibweise, etwa 1’040,4 Mrd. Franken oder 1.040,4 Mrd. Euro, aber keine gemischten Formate wie 1,040,4 Mrd.`,
 
         `# Satzbau und Informationsdichte
         Bevorzuge kurze und mittellange Sätze, ohne den Text in eine Folge abgehackter Einzelsätze zu verwandeln.
@@ -483,29 +517,41 @@ function buildDeveloperInstruction({
         Wenn Input und Recherche wenig Substanz liefern, schreibe kompakter. Verlängere den Beitrag nicht mit allgemeinen Einordnungen oder mehrfach formulierten Schlussfolgerungen.
         Verwende Gegenüberstellungen mit «nicht», «sondern», «statt» oder ähnlichen Konstruktionen nur, wenn tatsächlich zwei unterschiedliche Möglichkeiten, Positionen oder Wirkungen gegenübergestellt werden.
         Wenn der verneinte Teil ohne Informationsverlust entfernt werden kann, formuliere die eigentliche Aussage direkt.
-        Schreibe beispielsweise «Die Überbauung entsteht in einer einzigen Etappe.» statt «Die Überbauung soll nicht in mehreren Abschnitten, sondern in einer einzigen Etappe realisiert werden.»
-        Eine Formulierung wie «Der entscheidende Hebel liegt nicht in den Kriterien, sondern in der Zusatzklausel» ist erlaubt, wenn genau dieser Gegensatz für das Verständnis wichtig ist.
-        Vermeide Formulierungen wie «Das ist mehr als ein Terminentscheid», «Damit setzt das Projekt ein wichtiges Zeichen» oder «Die Entwicklung ist für den Markt von Bedeutung», wenn danach keine konkrete und belegte Wirkung erklärt wird.`,
+        Eine Gegenüberstellung ist erlaubt, wenn sie eine sachlich notwendige Abgrenzung zwischen zwei tatsächlich unterschiedlichen Bedingungen, Positionen oder Wirkungen erklärt.
+        Verwende dafür keine wiederkehrenden Standardformulierungen oder metaphorischen Schlüsselbegriffe.
+        Vermeide Sätze, die Bedeutung, Signalwirkung oder Tragweite lediglich ankündigen, wenn erst der folgende Satz die konkrete und belegte Wirkung erklärt.`,
 
         `# Direkte Aussagen und redaktionelle Übergänge
         Bevorzuge die konkrete Aussage gegenüber einem vorgeschalteten Satz, der ihre Bedeutung nur ankündigt.
 
-        Prüfe besonders Sätze, die mit Formulierungen wie «Für den Markt», «Für die Branche», «Für Eigentümer», «Damit wird deutlich», «Das zeigt», «Entscheidend ist», «Der Kern liegt», «Das ist mehr als» oder «Das sendet ein Signal» beginnen.
+        Prüfe besonders Sätze, die mit einer allgemeinen Relevanzbehauptung, einer angekündigten Signalwirkung, einer abstrakten Kernformel oder einer Zielgruppenansprache beginnen.
         Solche Einstiege sind nicht grundsätzlich verboten. Sie sollen aber nur verwendet werden, wenn der Satz selbst eine eigenständige und konkrete Aussage enthält.
 
-        Wenn erst der folgende Satz erklärt, was sich tatsächlich verändert, entferne den ankündigenden Satz und beginne direkt mit der konkreten Wirkung.
+        Wenn erst der folgende Satz erklärt, was sich tatsächlich verändert, entferne den ankündigenden Satz und beginne direkt mit der belegten Wirkung.
 
-        Schreibe beispielsweise direkt:
-        «Wenn Bestandsmieten tief bleiben und Angebotsmieten steigen, nimmt die Mobilität im Mietwohnungsmarkt ab.»
-
-        Schreibe nicht zuerst:
-        «Für den Markt ist das mehr als eine Rechenfrage privater Haushalte.»
-
-        Vermeide auch Sätze, die lediglich eine Zielgruppe aufzählen, um die Branchenrelevanz zu behaupten.
-        Nenne Eigentümer, Entwickler, Investoren, Behörden oder Mieter nur, wenn anschliessend klar wird, was sich für diese Gruppe konkret verändert.
+        Vermeide Sätze, die lediglich eine Zielgruppe aufzählen, um die Branchenrelevanz zu behaupten.
+        Nenne Eigentümer, Entwickler, Investoren, Behörden, Planende oder Mieter nur, wenn unmittelbar erklärt wird, was sich für diese Gruppe konkret verändert.
 
         Verwende pointierte Gegenüberstellungen und kurze Parallelismen sparsam.
-        Formulierungen wie «Wer bleiben kann, spart. Wer wechseln muss, zahlt mehr.» sind erlaubt, wenn sie den belegten Kern präzise zusammenfassen. Nutze sie aber nicht als automatische Schlussformel.`,
+        Beide Teile müssen eine eigenständige, belegte Information enthalten.
+        Nutze solche Konstruktionen nicht als wiederkehrendes Einstiegsmuster oder als automatische Schlussformel.`,
+
+        `# Sachlogik, Akteure und Statuspräzision
+        Stelle Akteure und Handlungen sachlich korrekt dar.
+        Eine Stadt, Behörde, Regierung, Eigentümerschaft, Projektgesellschaft oder andere Institution darf nur dann als handelnder Akteur genannt werden, wenn sie tatsächlich entscheidet, plant, finanziert, bewilligt, entwickelt oder umsetzt.
+
+        Orte, Quartiere, Areale, Märkte und Gebäude dürfen nicht mit Verben verbunden werden, die einen bewussten institutionellen Entscheid voraussetzen, wenn tatsächlich ein anderer Akteur handelt.
+
+        Unterscheide klar zwischen Idee, Absicht, Leitbild, Planung, Antrag, politischem Entscheid, Bewilligung, rechtskräftiger Grundlage, Bauprojekt, Baustart und bereits realisierter Entwicklung.
+        Formuliere einen möglichen oder geplanten Zustand nicht wie eine bereits beschlossene oder umgesetzte Tatsache.
+
+        Zähle denselben sachlichen Mechanismus nicht mehrfach als getrennte Ursache, Wirkung oder Vorteil.
+        Prüfe, ob zwei genannte Effekte tatsächlich unabhängig voneinander sind oder ob der eine lediglich die Erklärung des anderen ist.
+
+        Erhalte Bedingungen, räumliche Einschränkungen und Ausnahmen, wenn sie die Aussage begrenzen.
+        Verallgemeinere eine Aussage nicht auf einen gesamten Markt, alle Haushalte, alle Projekte oder alle Standorte, wenn sie nur für eine bestimmte Situation oder Teilgruppe gilt.
+
+        Behaupte keine Kausalität, Beschleunigung, Kostensenkung, Marktreaktion oder praktische Wirkung, die aus Input und Recherche nicht ausreichend hervorgeht.`,
 
         `# Zeichensetzung
         Verwende im sichtbaren redaktionellen Beitrag keine Doppelpunkte.
@@ -531,6 +577,8 @@ function buildDeveloperInstruction({
         Vermeide sehr allgemeine Titel, die auch zu vielen anderen Artikeln passen würden, etwa «Politik rückt ins Zentrum», «Markt im Fokus», «Preise unter Druck», «Neue Dynamik am Markt», «Wenn Preise zur Last werden» oder ähnliche austauschbare Formulierungen.
         Vermeide zu metaphorische, dramatische oder boulevardeske Titel. Der Titel soll sachlich, klar und immobilienwirtschaftlich wirken.
         Bevorzuge konkrete Titel mit Ort, Nutzung, Projektart, Entwicklung, Entscheid oder Wirkung.
+        Wenn der Titel ein aktives Verb verwendet, muss das grammatische Subjekt auch der tatsächliche handelnde Akteur sein.
+        Ein Ort, Quartier, Projekt oder Markt darf nur dann als Subjekt stehen, wenn das Verb eine beobachtbare Entwicklung beschreibt und keinen institutionellen Entscheid voraussetzt.
         Der Titel darf keinen Doppelpunkt enthalten.
         Im Titel dürfen keine Gedankenstriche, Halbgeviertstriche oder Bindestrich-Konstruktionen als Stilmittel vorkommen.
         Normale orthografische Bindestriche sind im Titel nur erlaubt, wenn sie für ein korrektes zusammengesetztes Wort nötig sind. Vermeide sie, wenn eine gleich gute Formulierung ohne Bindestrich möglich ist.
@@ -562,13 +610,10 @@ function buildDeveloperInstruction({
         Der erste Absatz darf denselben Ort, dasselbe Projekt und einzelne notwendige Begriffe erneut nennen.
         Er darf aber nicht dieselbe Hauptaussage, denselben Gegensatz und dieselben Folgen bloss mit Synonymen wiederholen.
 
-        Vermeide insbesondere folgende Abfolge.
-        Der Lead sagt, wer profitiert und unter welcher Bedingung sich das Verhältnis ändert.
-        Der erste Absatz sagt danach nochmals, wer profitiert und unter welcher Bedingung sich das Verhältnis ändert.
+        Vermeide eine Abfolge, bei der Lead und erster Absatz dieselben Akteure, Bedingungen, Gegensätze und Folgen lediglich unterschiedlich formulieren.
 
-        Bevorzuge folgende Abfolge.
         Der Lead nennt das Ergebnis.
-        Der erste Absatz erklärt den Mechanismus, die Ursache, den Auslöser oder ein neues belegtes Detail.
+        Der erste Absatz erklärt danach den Mechanismus, die Ursache, den Auslöser oder ein neues belegtes Detail.
 
         Wenn genügend belegte Substanz vorhanden ist, beschränke den Lead auf die zentrale Entwicklung und ihre wichtigste Wirkung.
         Nutze einen passenden Erklärungs-, Ursachen- oder Hintergrundaspekt danach für den ersten Absatz.
@@ -614,11 +659,18 @@ function buildDeveloperInstruction({
         Falls das JSON-Schema ein Feld source_references enthält, fülle es mit den wichtigsten tatsächlich verwendeten Webquellen.`,
 
         `# Quellenangaben im Fliesstext
-        Der Quellenabschnitt am Ende von content_html bleibt erhalten. Im eigentlichen Fliesstext sollen Quellen aber nicht direkt als Beleg genannt werden.
-        Vermeide Formulierungen wie «laut SRF», «laut Bundesrat», «gemäss Tages-Anzeiger», «nach Angaben von Wüest Partner», «Reuters berichtet», «Bloomberg schreibt», «die Studie von XY zeigt» oder ähnliche direkte Quellenzuschreibungen.
-        Medien, Behörden, Studien, Unternehmen oder Research-Häuser dürfen im Fliesstext genannt werden, wenn sie selbst Gegenstand der Nachricht, handelnde Akteure oder für das Verständnis notwendig sind. Sie sollen aber nicht als reine Belegformel verwendet werden.
-        Wenn eine vorsichtige Herkunftsformulierung nötig ist, nutze neutrale Formulierungen wie «gemäss verfügbaren Angaben», «nach verfügbaren Angaben», «verfügbare Daten zeigen», «öffentlich zugängliche Unterlagen deuten darauf hin» oder «in Medienberichten ist von ... die Rede».
-        Fakten müssen weiterhin durch Web-Recherche geprüft und am Ende im Quellenabschnitt verlinkt werden. Die Quellen sollen aber nicht unnötig im Fliesstext genannt werden.`,
+        Der Quellenabschnitt am Ende von content_html bleibt erhalten.
+        Formuliere verifizierte Fakten im Fliesstext grundsätzlich direkt und belege sie im Quellenabschnitt.
+
+        Eine Herkunftsformulierung ist nur erforderlich, wenn die Art der Quelle für die Aussage sachlich wichtig ist, etwa bei einer Prognose, Einschätzung, noch unbestätigten Information oder ausdrücklich veröffentlichten Position.
+
+        Nenne eine konkrete Quelle im Fliesstext, wenn sie selbst handelt, entscheidet, untersucht, prognostiziert oder eine Position vertritt.
+        Nenne sie nicht nur, um eine ansonsten direkt formulierbare Tatsache zu belegen.
+
+        Vermeide mehrere allgemeine Herkunftsformulierungen im selben Beitrag.
+        Solche Formulierungen dürfen nicht als routinemässiger Ersatz für direkte, belegte Aussagen verwendet werden.
+
+        Fakten müssen weiterhin durch Web-Recherche geprüft und am Ende im Quellenabschnitt verlinkt werden.`,
 
         `# Kategorien
         Wähle passende Kategorien aus der Liste allowed_category_options.
@@ -657,13 +709,17 @@ function buildDeveloperInstruction({
     if (forceStrongRewrite) {
         instructionSections.push(
             `# Zusätzliche Vorgaben für eine stärkere Neufassung
-            Der neue Entwurf muss stärker fokussiert sein als ein normaler Rewrite. Prüfe vor dem Schreiben, ob der Beitrag zu viele gleichwertige Themenstränge enthält.
-            Wenn mehrere Themen möglich sind, wähle den redaktionell stärksten Kern und ordne alle weiteren Informationen diesem Kern unter. Entferne Informationen, die den Beitrag nur verbreitern.
+            Überarbeite den beanstandeten Entwurf gezielt und fokussiere ihn stärker, ohne korrekte oder notwendige Fakten zu verlieren.
+            Prüfe, ob der Beitrag zu viele gleichwertige Themenstränge enthält.
+            Wenn mehrere Themen möglich sind, wähle den redaktionell stärksten Kern und ordne alle weiteren Informationen diesem Kern unter.
+            Entferne echte Nebenaspekte, aber erhalte belegte Zahlen, Termine, Statusangaben, Bedingungen, Ausnahmen und konkrete Umsetzungsschritte, die für das Verständnis wesentlich sind.
             Der Beitrag soll nicht wie eine Zusammenfassung der E-Mail wirken. Er soll wie ein eigenständiger Artikel wirken, der eine klare Auswahl trifft, gewichtet und einordnet.
             Formuliere Titel, Auszug und Einstieg so, dass sofort erkennbar ist, worum es im Kern geht. Verwende keine generischen Titel, die auch zu vielen anderen Artikeln passen würden.
             Nutze Web-Recherche nicht als Anlass, möglichst viele Zusatzinformationen einzubauen. Nutze sie zur Prüfung, Einordnung und Verdichtung.
-            Wenn der erste Entwurf mehrere mögliche Kernaussagen hätte, ist der zweite Entwurf zu fokussieren, bis eine Hauptaussage dominiert.
-            Der zweite Entwurf soll nicht länger, sondern klarer, konkreter und dichter werden.`
+            Wenn der erste Entwurf mehrere mögliche Kernaussagen hatte, fokussiere den zweiten Entwurf, bis eine Hauptaussage dominiert.
+            Der zweite Entwurf soll nicht unnötig länger werden.
+            Er darf jedoch länger sein als der erste Entwurf, wenn dies notwendig ist, um unverzichtbare belegte Fakten, Bedingungen, Zahlen oder Statusangaben zu erhalten.
+            Kürze zuerst Wiederholungen, Füllsätze und allgemeine Einordnungen.`
         );
     }
 
@@ -674,6 +730,10 @@ function buildDeveloperInstruction({
         instructionSections.push(
             `# Korrekturen am vorherigen Entwurf
             Der vorherige Entwurf wurde bei der internen Qualitätsprüfung beanstandet.
+            Wenn im User-Input previous_draft vorhanden ist, verwende diesen Entwurf als konkrete Arbeitsgrundlage.
+            Überarbeite nicht den gesamten Beitrag ohne Not.
+            Erhalte alle korrekten und belegten Fakten, Zahlen, Daten, Akteure, Statusangaben, Einschränkungen und Quellen aus previous_draft.
+            Korrigiere gezielt die beanstandeten Stellen und prüfe die korrigierte Fassung danach nochmals gegen source_text und die Web-Recherche.
 
             ${rewriteFeedback
                 .map((validationError) => {
@@ -707,6 +767,10 @@ function buildDeveloperInstruction({
         Fülle editorial_focus mit der zentralen Hauptaussage des Beitrags in einem Satz.
         Fülle editorial_relevance mit der Begründung, warum dieser Beitrag für die Zielgruppe relevant ist. Wenn kein starker Immobilienbezug vorhanden ist, formuliere die Relevanz allgemeiner und sachlich.
         Fülle supporting_aspects mit höchstens drei Aspekten, die den redaktionellen Fokus direkt stützen.
+        Fülle essential_facts mit mindestens einem belegten Fakt, der im sichtbaren Beitrag erhalten bleiben muss.
+        Wenn genügend Substanz vorhanden ist, nenne zwei bis acht essential_facts.
+        Dazu gehören insbesondere zentrale Zahlen, Zeitpunkte, Statusangaben, Bedingungen, Ausnahmen, räumliche Einschränkungen und konkrete Umsetzungsschritte.
+        Jeder Eintrag in essential_facts muss in title, excerpt oder content_html sachlich erkennbar enthalten sein.
         Fülle omitted_aspects mit wichtigen Input- oder Rechercheaspekten, die bewusst nicht oder nur sehr knapp verwendet wurden, weil sie den Beitrag sonst thematisch überladen würden.
         Diese Qualitätsfelder dienen der internen Prüfung. content_html darf sie nicht als sichtbare Liste oder Meta-Erklärung ausgeben.`
     );
@@ -722,13 +786,21 @@ function buildDeveloperInstruction({
 
         Prüfe gedanklich, welche Aussagen im Lead enthalten sind und welche Aussagen im ersten Absatz enthalten sind.
         Wenn der erste Absatz hauptsächlich dieselben Aussagen mit anderen Substantiven oder Verben wiederholt, formuliere ihn neu.
-        Wiederholungen sind auch dann Wiederholungen, wenn statt «langjährige Mieter» später «Haushalte mit tiefen Bestandsmieten» oder statt «Eigenheimkauf» später «Erwerb von Wohneigentum» steht.
+        Wiederholungen bleiben auch dann Wiederholungen, wenn Akteure, Handlungen oder Gegenstände nur durch Synonyme, Oberbegriffe oder fachsprachliche Varianten ersetzt wurden.
 
         Im sichtbaren redaktionellen Text darf kein Doppelpunkt vorkommen.
         Der Titel darf keinen Firmen-, Unternehmens-, Marken- oder Produktnamen enthalten.
 
+        Prüfe alle zusammengesetzten Begriffe und gekoppelten Wortgruppen auf orthografisch notwendige Bindestriche.
+        Die Regel gegen stilistische Gedankenstriche darf keine Bindestriche innerhalb korrekter Wörter oder Namen entfernen.
+        Prüfe, ob alle essential_facts im sichtbaren Beitrag enthalten sind.
+        Kürze keine belegte Zahl, Frist, Bedingung oder Statusangabe, die für die Einordnung wesentlich ist.
+
         Prüfe jeden Satz, der lediglich Relevanz, Bedeutung, Signalwirkung oder Tragweite ankündigt.
         Wenn der folgende Satz die eigentliche Aussage konkreter formuliert, entferne den ankündigenden Satz.
+
+        Prüfe, ob Herkunftsformulierungen wirklich notwendig sind.
+        Wenn eine verifizierte Tatsache ohne Informationsverlust direkt formuliert werden kann, entferne die Herkunftsformel und belasse den Beleg im Quellenabschnitt.
 
         Längere Sätze sind erlaubt, wenn sie klar und gut lesbar bleiben.
         Teile sie auf, wenn mehrere eigenständige Aussagen oder unnötige Einschübe darin stecken.
@@ -849,6 +921,16 @@ function buildResponseSchema({ useStrictLengthRules }) {
         minLength: 20,
         maxLength: 300
       },
+      essential_facts: {
+          type: 'array',
+          items: {
+              type: 'string',
+              minLength: 10,
+              maxLength: 220
+          },
+          minItems: useStrictLengthRules ? 2 : 1,
+          maxItems: 8
+      },
       supporting_aspects: {
         type: 'array',
         items: {
@@ -889,6 +971,7 @@ function buildResponseSchema({ useStrictLengthRules }) {
       'source_references',
       'editorial_focus',
       'editorial_relevance',
+      'essential_facts',
       'supporting_aspects',
       'omitted_aspects'
     ],
@@ -1082,20 +1165,24 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         source_references: sourceReferences,
         editorial_focus: normalizeWhitespace(parsedResponse.editorial_focus || ''),
         editorial_relevance: normalizeWhitespace(parsedResponse.editorial_relevance || ''),
+        essential_facts: normalizeEditorialAspectList(parsedResponse.essential_facts, 8),
         supporting_aspects: normalizeEditorialAspectList(parsedResponse.supporting_aspects),
         omitted_aspects: normalizeEditorialAspectList(parsedResponse.omitted_aspects)
     };
 }
 
-function normalizeEditorialAspectList(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
+function normalizeEditorialAspectList(
+    value,
+    maximumEntryCount = 5
+) {
+    if (!Array.isArray(value)) {
+        return [];
+    }
 
-  return value
-    .map((entry) => normalizeWhitespace(entry))
-    .filter(Boolean)
-    .slice(0, 5);
+    return value
+        .map((entry) => normalizeWhitespace(entry))
+        .filter(Boolean)
+        .slice(0, maximumEntryCount);
 }
 
 function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
@@ -1418,7 +1505,8 @@ function buildRewriteValidationErrors({
   sourceText,
   rewrittenPost,
   useStrictLengthRules,
-  includeEditorialFocusValidation = false
+  includeEditorialFocusValidation = false,
+  requiredEssentialFacts = []
 }) {
   const validationErrors = [];
 
@@ -1473,6 +1561,22 @@ Aktuell: ${dashStyleCountInContent}.`);
 
   if (isTooCloseToSource(sourceText, rewrittenPost.content_text)) {
     validationErrors.push('OpenAI-Text ist noch zu nah am Originaltext.');
+  }
+
+  const missingEssentialNumericFacts =
+    findMissingEssentialNumericFacts(
+      rewrittenPost,
+      requiredEssentialFacts
+  );
+
+  if (missingEssentialNumericFacts.length > 0) {
+    validationErrors.push(
+      `Im Beitrag fehlen unverzichtbare Zahlen oder Zeitangaben: ${
+        missingEssentialNumericFacts
+          .slice(0, 2)
+          .join(' | ')
+      }`
+    );
   }
 
   if (rewrittenPost.category_resolution_error) {
@@ -1641,15 +1745,93 @@ function countSharedNumericValues(firstText, secondText) {
 
 function extractNumericValues(text) {
     const numericMatches = String(text || '').match(
-        /\b\d[\d’'.]*\b/g
+        /\b\d+(?:(?:[’']\d{3})+|(?:\.\d{3})+)?(?:[,.]\d+)?\b/g
     );
 
     if (!numericMatches) {
         return [];
     }
 
-    return numericMatches.map((numericValue) => {
-        return numericValue.replace(/[’'.]/g, '');
+    return numericMatches.map((rawValue) => {
+        let normalizedValue =
+            rawValue.replace(/[’']/g, '');
+
+        if (
+            /^\d+(?:\.\d{3})+(?:,\d+)?$/.test(
+                normalizedValue
+            )
+        ) {
+            normalizedValue =
+                normalizedValue.replace(/\./g, '');
+        }
+
+        return normalizedValue.replace(',', '.');
+    });
+}
+
+function findMissingEssentialNumericFacts(
+    rewrittenPost,
+    requiredEssentialFacts = []
+) {
+    const currentEssentialFacts = Array.isArray(
+        rewrittenPost.essential_facts
+    )
+        ? rewrittenPost.essential_facts
+        : [];
+
+    const preservedEssentialFacts = Array.isArray(
+        requiredEssentialFacts
+    )
+        ? requiredEssentialFacts
+        : [];
+
+    const essentialFacts = Array.from(
+        new Set(
+            [
+                ...currentEssentialFacts,
+                ...preservedEssentialFacts
+            ]
+                .map((essentialFact) => {
+                    return normalizeWhitespace(
+                        essentialFact
+                    );
+                })
+                .filter(Boolean)
+        )
+    );
+
+    const contentHtmlWithoutLinkText = String(
+        rewrittenPost.content_html || ''
+    ).replace(
+        /<a\b[^>]*>[\s\S]*?<\/a>/gi,
+        ''
+    );
+
+    const visibleArticleText = [
+        rewrittenPost.title,
+        rewrittenPost.excerpt,
+        htmlToPlainText(contentHtmlWithoutLinkText)
+    ].join(' ');
+
+    const visibleNumericValues = new Set(
+        extractNumericValues(visibleArticleText)
+    );
+
+    return essentialFacts.filter((essentialFact) => {
+        const requiredNumericValues =
+            extractNumericValues(essentialFact);
+
+        if (requiredNumericValues.length === 0) {
+            return false;
+        }
+
+        return requiredNumericValues.some(
+            (numericValue) => {
+                return !visibleNumericValues.has(
+                    numericValue
+                );
+            }
+        );
     });
 }
 
@@ -2062,6 +2244,30 @@ function normalizeSourceReferences(sourceReferences) {
   }
 
   return normalizedReferences.slice(0, 8);
+}
+
+function buildRewriteDraftForPrompt(rewrittenPost) {
+    if (!rewrittenPost) {
+        return null;
+    }
+
+    return {
+        title: rewrittenPost.title || '',
+        excerpt: rewrittenPost.excerpt || '',
+        content_html: rewrittenPost.content_html || '',
+        editorial_focus:
+            rewrittenPost.editorial_focus || '',
+        editorial_relevance:
+            rewrittenPost.editorial_relevance || '',
+        essential_facts:
+            rewrittenPost.essential_facts || [],
+        supporting_aspects:
+            rewrittenPost.supporting_aspects || [],
+        omitted_aspects:
+            rewrittenPost.omitted_aspects || [],
+        source_references:
+            rewrittenPost.source_references || []
+    };
 }
 
 function normalizeAdditionalInstructionsForPrompt(additionalInstructions) {
