@@ -427,11 +427,12 @@ function buildDeveloperInstruction({
         Vermeide Einstiege, die nur allgemein erklären, warum ein Thema relevant ist.
         Zeige Relevanz durch konkrete Wirkung.
         Schreibe nicht abstrakt, dass etwas «für die Immobilienwirtschaft relevant» ist, sondern zeige, was sich für Areale, Projekte, Gebäude, Bauherrschaften, Eigentümer, Entwickler, Investoren, Behörden, Nutzer, Mieter, Verfahren, Finanzierung oder Regulierung verändert.
-        Der Text darf pointiert sein, bleibt aber sachlich.
+        Der Text darf deutlich pointiert, zugespitzt und sprachlich offensiv sein, solange der sachliche Kern korrekt bleibt.
+        Eine journalistische Dramatisierung ist ausdrücklich erlaubt, wenn sie nur die sprachliche Wirkung verstärkt. Zahlen, Fakten, Akteure, Zeitpunkte, Statusangaben, Bedingungen, Ursachen und Folgen dürfen dadurch nicht verändert werden.
+        Vermeide nur irreführende, faktenwidrige oder künstlich skandalisierende Zuspitzungen. Schreibe mutig, direkt und wirkungsvoll, wenn die belegten Informationen eine starke Formulierung tragen.
         Konkrete Folgesätze dürfen kurz sein, wenn ihre Aussage unmittelbar aus den zuvor genannten Fakten hervorgeht.
         Vermeide jedoch isolierte Kurzsätze, die nur eine allgemeine Bewertung oder Marktlage behaupten.
-        Benenne nach Möglichkeit direkt, was sich verändert, für wen sich etwas verändert und wodurch diese Wirkung entsteht.
-        Vermeide boulevardeske Zuspitzung, aber schreibe nicht unnötig vorsichtig, wenn die Fakten klar sind.`,
+        Benenne nach Möglichkeit direkt, was sich verändert, für wen sich etwas verändert und wodurch diese Wirkung entsteht.`,
 
         `# Redaktioneller Fokus
         Entscheide vor dem Schreiben, welcher einzelne redaktionelle Kern den Beitrag trägt. Der Beitrag soll aus einer klaren Hauptaussage heraus entstehen, nicht aus einer vollständigen Abarbeitung aller Informationen im Input.
@@ -582,11 +583,14 @@ function buildDeveloperInstruction({
 
         `# Titel
         Der Titel muss immer neu formuliert werden und darf niemals dem Originaltitel entsprechen oder ihm nur leicht umgestellt ähneln.
-        Wähle für den Titel eine neue, redaktionelle und prägnante Formulierung mit maximal ${maximumTitleLength} Zeichen.
-        Der Titel soll den konkreten Nachrichtenwert oder Markteffekt benennen. Gute Titel zeigen, was sich verändert, wo eine Entwicklung stattfindet, welche Wirkung entsteht oder welche Entscheidung getroffen wurde.
+        Wähle für den Titel eine neue, redaktionelle, pointierte und prägnante Formulierung mit maximal ${maximumTitleLength} Zeichen.
+        Der Titel soll den konkreten Nachrichtenwert oder Markteffekt möglichst aktiv benennen. Gute Titel zeigen, was sich verändert, wo eine Entwicklung stattfindet, welche Wirkung entsteht, welcher Konflikt sichtbar wird oder welche Entscheidung getroffen wurde.
         Vermeide sehr allgemeine Titel, die auch zu vielen anderen Artikeln passen würden, etwa «Politik rückt ins Zentrum», «Markt im Fokus», «Preise unter Druck», «Neue Dynamik am Markt», «Wenn Preise zur Last werden» oder ähnliche austauschbare Formulierungen.
-        Vermeide zu metaphorische, dramatische oder boulevardeske Titel. Der Titel soll sachlich, klar und immobilienwirtschaftlich wirken.
-        Bevorzuge konkrete Titel mit Ort, Nutzung, Projektart, Entwicklung, Entscheid oder Wirkung.
+        Eine deutlich pointierte, provokative und sprachlich zugespitzte Formulierung ist ausdrücklich erwünscht.
+        Der Titel darf Konflikte, Druck, Verluste, Chancen, Brüche, Hindernisse und Konsequenzen stärker hervorheben, als es eine rein nüchterne Formulierung tun würde.
+        Eine gewisse journalistische Dramatisierung ist erlaubt. Sie darf jedoch keine Zahlen, Fakten, Akteure, Zeitpunkte, Statusangaben, Bedingungen, Ursachen oder Folgen verändern.
+        Der Titel soll klar, kraftvoll und immobilienwirtschaftlich relevant wirken. Er muss nicht neutral oder zurückhaltend klingen.
+        Bevorzuge konkrete Titel mit Ort, Nutzung, Projektart, Entwicklung, Entscheid, Konflikt oder Wirkung.
         Wenn der Titel ein aktives Verb verwendet, muss das grammatische Subjekt auch der tatsächliche handelnde Akteur sein.
         Ein Ort, Quartier, Projekt oder Markt darf nur dann als Subjekt stehen, wenn das Verb eine beobachtbare Entwicklung beschreibt und keinen institutionellen Entscheid voraussetzt.
         Der Titel darf keinen Doppelpunkt enthalten.
@@ -597,10 +601,24 @@ function buildDeveloperInstruction({
         Stelle stattdessen den Ort, das Projekt, die Nutzung, die Grössenordnung, den Entscheid, den Konflikt oder die konkrete Wirkung ins Zentrum.
         Namen von Städten, Gemeinden, Kantonen, Behörden und politischen Institutionen sind erlaubt, weil sie nicht als Firmennamen gelten.
         Projektnamen sind erlaubt, sofern sie nicht zugleich ein Firmen-, Marken- oder Produktname sind und für einen verständlichen Titel benötigt werden.
-        Der Titel darf keine Kausalität, Zuspitzung oder direkte Folge behaupten, die aus Input und Recherche nicht klar hervorgeht.
+        Der Titel darf eine belegte Entwicklung, Spannung oder Konsequenz deutlich zuspitzen und sprachlich verdichten.
+        Eine erkennbare Richtung oder Wirkung darf mit einem starken Verb formuliert werden, auch wenn eine nüchterne Formulierung schwächer ausfallen würde.
+        Der Titel darf jedoch keine unbelegte Kausalität, keine falsche Gewissheit und keine nicht nachweisbare direkte Folge erfinden.
         Vermeide Titel, die einen Kontextfaktor als Ursache darstellen, wenn er im Beitrag nur eine Einordnung oder ein Nebenaspekt ist.
-        Der Titel soll wie eine kompakte redaktionelle Zeile wirken, nicht wie eine Kapitelüberschrift und nicht wie ein SEO-Satz.
-        Bevorzuge konkrete Verben und klare Wirkungen.`,
+        Der Titel soll wie eine kompakte und reizvolle redaktionelle Zeile wirken, nicht wie eine Kapitelüberschrift und nicht wie ein SEO-Satz.
+        Nutze, wenn die belegte Richtung der Aussage dazu passt, kraftvolle Verben wie bremst, blockiert, verschärft, treibt, zwingt, kippt, stoppt, verdrängt, beschleunigt, öffnet, entfacht, belastet, verteuert, entlastet, scheitert, verliert oder gewinnt.
+        Verwende diese Verben nur als stilistische Orientierung und nicht als feste Auswahl. Suche bevorzugt nach dem präzisesten Verb für den jeweiligen Beitrag.
+        Bevorzuge ein starkes und konkretes Verb gegenüber neutralen Formulierungen wie verändert sich, entwickelt sich, gewinnt an Bedeutung, sorgt für Bewegung oder steht im Fokus.
+        Verwende keine Wörter, die eine konkrete messbare Grössenordnung behaupten, wenn diese nicht belegt ist. Begriffe wie explodiert, kollabiert, halbiert oder verdoppelt dürfen nur verwendet werden, wenn die Zahlen diese Aussage tatsächlich tragen.
+        Formuliere vor der Ausgabe intern mindestens drei deutlich unterschiedliche Titelrichtungen.
+
+        Eine Variante soll den stärksten Konflikt oder das grösste Hindernis betonen.
+        Eine Variante soll die wichtigste konkrete Wirkung oder Konsequenz betonen.
+        Eine Variante soll die überraschendste Entwicklung oder Veränderung betonen.
+
+        Gib nur den stärksten Titel aus.
+
+        Wähle nicht die vorsichtigste Variante, sondern die reizvollste und sprachlich stärkste Variante, deren sachlicher Kern vollständig durch Input und Recherche gedeckt ist.`,
 
         `# Firmen, Marken und Produktnamen im Inhalt
         Im Inhalt dürfen Firmennamen, Markennamen oder Produktnamen verwendet werden, wenn sie für die Nachricht, Einordnung oder Verständlichkeit relevant sind.
@@ -610,9 +628,18 @@ function buildDeveloperInstruction({
         `# Einstieg aus Titel, Lead und erstem Absatz
         Behandle Titel, Textauszug und ersten Absatz als eine zusammenhängende redaktionelle Informationsfolge und nicht als drei voneinander unabhängige Einstiege.
 
-        Der Titel benennt den Nachrichtenwert.
+        Der Titel benennt den Nachrichtenwert möglichst aktiv, pointiert und konkret und stellt die stärkste belegte Entwicklung, Spannung oder Konsequenz ins Zentrum.
         Der Textauszug wird als Lead verwendet. Er nennt die zentrale neue Entwicklung und höchstens eine wichtige Folge, Einschränkung oder Gegenposition.
+        Formuliere ihn aktiv, direkt und deutlich zugespitzt. Erzeuge je nach Nachrichtenlage spürbare Dringlichkeit, Spannung, Neugier oder Erwartung. Die stärkste Veränderung, der wichtigste Konflikt oder die folgenreichste Konsequenz soll bereits im ersten Satz erkennbar werden.
+        Der Lead darf sprachlich offensiv sein und muss nicht wie eine neutrale Zusammenfassung klingen.
         Der Lead soll nicht bereits alle Ursachen, Hintergründe, Zahlen und Konsequenzen des Beitrags zusammenfassen.
+        Erzeuge den Lesereiz durch eine starke konkrete Wirkung, einen belegten Gegensatz, einen überraschenden Bruch, ein erkennbares Hindernis oder eine folgenreiche Konsequenz.
+        Sprachliche Zuspitzung und journalistische Dramatisierung sind erlaubt, wenn sie die belegte Aussage wirkungsvoller formulieren, ohne ihre tatsächliche Tragweite zu verändern.
+        Verändere dabei keine Zahlen, Fakten, Akteure, Zeitpunkte, Statusangaben, Bedingungen, Ursachen oder Folgen. Stelle eine mögliche Folge nicht als sicher dar und eine Einschätzung nicht als eingetretene Tatsache.
+        Vermeide höflich abwägende, rein beschreibende oder distanzierte Leads, wenn die Fakten eine stärkere Formulierung erlauben.
+        Beginne nicht mit allgemeinen Formulierungen wie «Eine neue Entwicklung zeigt», «Das Thema gewinnt an Bedeutung», «Der Markt steht vor Veränderungen», «Das Projekt sorgt für Aufmerksamkeit» oder «Für die Branche ergeben sich neue Perspektiven».
+        Beginne direkt mit dem Akteur, dem Konflikt, der Veränderung oder der Konsequenz.
+        Der Lead soll beim Leser eine konkrete Frage auslösen, die der Beitrag danach beantwortet. Er darf dafür eine wesentliche Ursache, Zahl, Bedingung oder Erklärung bewusst für den ersten Absatz offenlassen.
 
         Der erste Absatz von content_html beantwortet danach die nächste offene Frage.
         Er erklärt beispielsweise, warum die Entwicklung eintritt, wodurch sie ausgelöst wurde, wie der Mechanismus funktioniert, welche Vorgeschichte besteht, wer den Entscheid getroffen hat oder welches konkrete Detail die Aussage des Leads belegt.
@@ -622,7 +649,7 @@ function buildDeveloperInstruction({
 
         Vermeide eine Abfolge, bei der Lead und erster Absatz dieselben Akteure, Bedingungen, Gegensätze und Folgen lediglich unterschiedlich formulieren.
 
-        Der Lead nennt das Ergebnis.
+        Der Lead nennt die zentrale Entwicklung und formuliert ihre wichtigste Wirkung möglichst aktiv und pointiert.
         Der erste Absatz erklärt danach den Mechanismus, die Ursache, den Auslöser oder ein neues belegtes Detail.
 
         Wenn genügend belegte Substanz vorhanden ist, beschränke den Lead auf die zentrale Entwicklung und ihre wichtigste Wirkung.
@@ -729,7 +756,10 @@ function buildDeveloperInstruction({
             Wenn mehrere Themen möglich sind, wähle den redaktionell stärksten Kern und ordne alle weiteren Informationen diesem Kern unter.
             Entferne echte Nebenaspekte, aber erhalte belegte Zahlen, Termine, Statusangaben, Bedingungen, Ausnahmen und konkrete Umsetzungsschritte, die für das Verständnis wesentlich sind.
             Der Beitrag soll nicht wie eine Zusammenfassung der E-Mail wirken. Er soll wie ein eigenständiger Artikel wirken, der eine klare Auswahl trifft, gewichtet und einordnet.
-            Formuliere Titel, Auszug und Einstieg so, dass sofort erkennbar ist, worum es im Kern geht. Verwende keine generischen Titel, die auch zu vielen anderen Artikeln passen würden.
+            Formuliere Titel, Auszug und Einstieg so, dass sofort erkennbar ist, worum es im Kern geht.
+            Wenn Titel oder Lead zwar korrekt, aber zu nüchtern, beschreibend, vorsichtig oder austauschbar wirken, schreibe sie deutlich mutiger neu.
+            Der zweite Entwurf muss in diesem Fall erkennbar aktiver, zugespitzter und reizvoller sein. Eine reine Umstellung oder der Austausch einzelner Synonyme reicht nicht aus.
+            Wähle beim zweiten Versuch die stärkste faktisch vertretbare Formulierung und nicht erneut die sicherste oder neutralste Variante.
             Nutze Web-Recherche nicht als Anlass, möglichst viele Zusatzinformationen einzubauen. Nutze sie zur Prüfung, Einordnung und Verdichtung.
             Wenn der erste Entwurf mehrere mögliche Kernaussagen hatte, fokussiere den zweiten Entwurf, bis eine Hauptaussage dominiert.
             Der zweite Entwurf soll nicht unnötig länger werden.
@@ -795,6 +825,10 @@ function buildDeveloperInstruction({
         Prüfe den fertigen Beitrag vor der JSON-Ausgabe nochmals vollständig.
 
         Lies Titel, Lead und ersten Absatz direkt nacheinander.
+        Prüfe zusätzlich, ob Titel und Lead unnötig vorsichtig, neutral oder beschreibend formuliert sind.
+        Frage dich, ob der Titel mit einem stärkeren Verb, einem klareren Konflikt oder einer deutlicheren Konsequenz reizvoller formuliert werden kann, ohne den sachlichen Kern zu verändern.
+        Frage dich, ob der Lead bereits im ersten Satz genügend Spannung und Dringlichkeit erzeugt.
+        Wenn eine stärkere faktisch vertretbare Formulierung möglich ist, verwende diese. Bevorzuge die stärkste belegbare Formulierung und nicht die vorsichtigste.
         Titel, Lead und erster Absatz müssen wie eine fortlaufende Informationsfolge wirken.
         Der Lead nennt die zentrale Nachricht.
         Der erste Absatz muss mindestens eine neue belegte Information, Ursache, Erklärung, Vorgeschichte oder Konkretisierung enthalten.
@@ -2096,7 +2130,7 @@ function buildEditorialFocusValidationErrors(rewrittenPost) {
   }
 
   if (hasGenericEditorialTitle(rewrittenPost.title)) {
-    validationErrors.push('OpenAI-Titel ist zu allgemein und gibt keinen klaren Hauptwinkel vor.');
+    validationErrors.push('OpenAI-Titel ist zu allgemein oder zu neutral. Formuliere ihn deutlich aktiver, pointierter und reizvoller. Stelle eine konkrete Veränderung, einen belegten Konflikt, ein Hindernis, einen Entscheid oder eine erkennbare Konsequenz ins Zentrum. Verwende ein starkes und sachlich passendes Verb.');
   }
 
   if (!doesTextReflectEditorialFocus(rewrittenPost)) {
@@ -2110,14 +2144,31 @@ function hasGenericEditorialTitle(title) {
   const genericPatterns = [
     /\bim fokus\b/i,
     /\brückt ins zentrum\b/i,
+    /\bgewinnt an bedeutung\b/i,
+    /\bbleibt relevant\b/i,
     /\bmit folgen\b/i,
     /\bvor veränderungen\b/i,
     /\bim wandel\b/i,
     /\bneue dynamik\b/i,
-    /\bbranche reagiert\b/i
+    /\bneue impulse\b/i,
+    /\bneue perspektiven\b/i,
+    /\baktuelle entwicklungen?\b/i,
+    /\bbranche reagiert\b/i,
+    /\bsteht vor herausforderungen\b/i,
+    /\bsetzt ein zeichen\b/i,
+    /\bsendet ein signal\b/i,
+    /\bstarkes signal\b/i,
+    /\bwichtiges signal\b/i,
+    /\bsorgt für bewegung\b/i,
+    /\bchancen und herausforderungen\b/i,
+    /\bauf dem vormarsch\b/i,
+    /\bwas jetzt wichtig ist\b/i,
+    /\bein blick auf\b/i
   ];
 
-  return genericPatterns.some((pattern) => pattern.test(title));
+  return genericPatterns.some((pattern) => {
+    return pattern.test(title);
+  });
 }
 
 function doesTextReflectEditorialFocus(rewrittenPost) {
