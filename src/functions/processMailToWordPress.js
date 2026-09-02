@@ -134,7 +134,11 @@ app.http('processMailToWordPress', {
             const createdWordPressPost = await runLoggedStep(
             'wordpress_create_draft',
             logger,
-            () => createWordPressDraft(rewrittenPost),
+            () => createWordPressDraft(rewrittenPost, {
+                subject: String(requestBody.subject || ''),
+                htmlBody: String(requestBody.html_body || ''),
+                textBody: String(requestBody.text_body || '')
+            }),
             {
                 post_title_length: String(rewrittenPost.title || '').length,
                 category_count: Array.isArray(rewrittenPost.category_ids) ? rewrittenPost.category_ids.length : 0,

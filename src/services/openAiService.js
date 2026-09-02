@@ -692,14 +692,12 @@ function buildDeveloperInstruction({
         Verwende Tabellen, Bullet-Listen oder nummerierte Listen nur, wenn sie für das Verständnis notwendig sind.`,
 
         `# Quellen
-        Wenn Webquellen verwendet werden, soll content_html am Ende einen kurzen Quellenabschnitt mit passenden HTML-Links enthalten.
-        Der Quellenabschnitt soll nur Quellen enthalten, die tatsächlich für zusätzliche Informationen im Beitrag verwendet wurden.
-        Der Quellenabschnitt darf keine Heading-Tags verwenden.
-        Falls das JSON-Schema ein Feld source_references enthält, fülle es mit den wichtigsten tatsächlich verwendeten Webquellen.`,
+        Gib Quellen ausschliesslich strukturiert im Feld source_references aus.
+        content_html darf keinen Quellenabschnitt, keine Quellenliste und keine am Ende angehängten Quellenlinks enthalten.
+        Fülle source_references mit den wichtigsten tatsächlich verwendeten Webquellen.`,
 
         `# Quellenangaben im Fliesstext
-        Der Quellenabschnitt am Ende von content_html bleibt erhalten.
-        Formuliere verifizierte Fakten im Fliesstext grundsätzlich direkt und belege sie im Quellenabschnitt.
+        Formuliere verifizierte Fakten im Fliesstext grundsätzlich direkt und belege sie über source_references.
 
         Eine Herkunftsformulierung ist nur erforderlich, wenn die Art der Quelle für die Aussage sachlich wichtig ist, etwa bei einer Prognose, Einschätzung, noch unbestätigten Information oder ausdrücklich veröffentlichten Position.
 
@@ -712,7 +710,16 @@ function buildDeveloperInstruction({
         Verwende im sichtbaren Beitrag höchstens eine allgemeine Herkunftsformulierung, sofern nicht mehrere unterschiedliche Prognosen, Positionen oder noch unbestätigte Angaben ausdrücklich voneinander abgegrenzt werden müssen.
         Nenne keine Projektseite, Unterlagen oder Präsentation nur als Belegformel, wenn die verifizierte Information direkt formuliert werden kann.
 
-        Fakten müssen weiterhin durch Web-Recherche geprüft und am Ende im Quellenabschnitt verlinkt werden.`,
+        Fakten müssen weiterhin durch Web-Recherche geprüft und über source_references belegt werden.`,
+
+        `# Ortsfeld
+        location_names enthält ausschliesslich die für das Hauptthema relevanten geografischen Werte.
+        Bezieht sich der Text auf einen Ort in der Schweiz, gib den zugehörigen Schweizer Kanton in deutscher Schreibweise aus.
+        Bezieht er sich international auf eine Hauptstadt, gib nur den Namen dieser Hauptstadt aus.
+        Bezieht er sich international auf einen Ort, der keine Hauptstadt ist, gib nur das zugehörige Land in deutscher Schreibweise aus.
+        Bei mehreren relevanten Orten oder Ländern gib jeden Wert als separaten Array-Eintrag aus.
+        Entferne Duplikate und ignoriere bloss beiläufig erwähnte Orte, Vergleichsorte und technisch genannte Firmensitze.
+        Verwende keine Zusätze wie Kanton, Stadt oder Land und verwende in den Einträgen keinen Schrägstrich.`,
 
         `# Kategorien
         Wähle passende Kategorien aus der Liste allowed_category_options.
@@ -849,7 +856,7 @@ function buildDeveloperInstruction({
         Wenn der folgende Satz die eigentliche Aussage konkreter formuliert, entferne den ankündigenden Satz.
 
         Prüfe, ob Herkunftsformulierungen wirklich notwendig sind.
-        Wenn eine verifizierte Tatsache ohne Informationsverlust direkt formuliert werden kann, entferne die Herkunftsformel und belasse den Beleg im Quellenabschnitt.
+        Wenn eine verifizierte Tatsache ohne Informationsverlust direkt formuliert werden kann, entferne die Herkunftsformel und belasse den Beleg in source_references.
 
         Prüfe, ob interne Begriffe wie Ausgangstext, User-Input, source_text, previous_draft, vorheriger Entwurf oder interne Qualitätsprüfung sichtbar vorkommen. Entferne sie vollständig.
         Prüfe, ob ein essential_fact mehrfach vollständig erklärt wird. Behalte die stärkste Platzierung und kürze die übrigen Nennungen auf den jeweils neuen Informationswert.
@@ -965,6 +972,16 @@ function buildResponseSchema({ useStrictLengthRules }) {
         minItems: enableOpenAiWebSearch ? 1 : 0,
         maxItems: 8
       },
+      location_names: {
+        type: 'array',
+        items: {
+          type: 'string',
+          minLength: 2,
+          maxLength: 80
+        },
+        minItems: 0,
+        maxItems: 12
+      },
       editorial_focus: {
         type: 'string',
         minLength: 20,
@@ -1023,6 +1040,7 @@ function buildResponseSchema({ useStrictLengthRules }) {
       'featured_image_prompt_en',
       'featured_image_alt_text_de',
       'source_references',
+      'location_names',
       'editorial_focus',
       'editorial_relevance',
       'essential_facts',
@@ -1045,6 +1063,7 @@ function buildOriginalMailDeveloperInstruction() {
         'Ändere beim Titel und Lead keine Wörter, keine Zahlen, keine Satzzeichen und keine Reihenfolge.',
         'Korrigiere keine Rechtschreibung und formuliere nichts schöner.',
         'Erfinde keine Informationen und ergänze keinen neuen Inhalt.',
+        'Bestimme zusätzlich location_names nach diesen Regeln. Bei einem Schweizer Ort gib den zugehörigen Kanton auf Deutsch aus. Bei einer internationalen Hauptstadt gib nur die Hauptstadt aus. Bei einem anderen internationalen Ort gib nur das Land auf Deutsch aus. Mehrere relevante Werte sind separate Array-Einträge. Entferne Duplikate, ignoriere beiläufige Orte und verwende keine Schrägstriche innerhalb eines Eintrags.',
         'Falls die E-Mail keinen klaren separaten Lead enthält, verwende den ersten sinnvollen Absatz nach dem Titel als lead.',
         'Wähle zusätzlich passende Kategorien aus der Liste allowed_category_options.',
         `selected_category_keys muss zwischen ${minimumRequestedCategoryCountFromAi} und ${maximumRequestedCategoryCountFromAi} Einträge enthalten.`,
@@ -1131,6 +1150,16 @@ function buildOriginalMailResponseSchema() {
                 minLength: 60,
                 maxLength: 1400
             },
+            location_names: {
+                type: 'array',
+                items: {
+                    type: 'string',
+                    minLength: 2,
+                    maxLength: 80
+                },
+                minItems: 0,
+                maxItems: 12
+            },
         },
         required: [
             'title',
@@ -1140,7 +1169,8 @@ function buildOriginalMailResponseSchema() {
             'keyword_names',
             'midjourney_prompt_en',
             'featured_image_prompt_en',
-            'featured_image_alt_text_de'
+            'featured_image_alt_text_de',
+            'location_names'
         ],
         additionalProperties: false
     };
@@ -1149,7 +1179,9 @@ function buildOriginalMailResponseSchema() {
 function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
     const title = normalizeWhitespace(parsedResponse.title || '');
 
-    let contentHtml = normalizeGeneratedHtml(parsedResponse.content_html || '');
+    let contentHtml = removeSourceSectionFromContentHtml(
+        normalizeGeneratedHtml(parsedResponse.content_html || '')
+    );
     if (!contentHtml) {
         throw new Error('OpenAI-Antwort enthält keinen gültigen Inhalt.');
     }
@@ -1198,6 +1230,7 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
     }
 
     const sourceReferences = normalizeSourceReferences(parsedResponse.source_references);
+    const locationNames = normalizeLocationNames(parsedResponse.location_names);
 
     if (enableOpenAiWebSearch && sourceReferences.length === 0) {
         throw new Error('OpenAI hat keine verwertbaren Webquellen zurückgegeben.');
@@ -1217,6 +1250,8 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         featured_image_prompt_en: featuredImagePrompt,
         featured_image_alt_text_de: featuredImageAltText,
         source_references: sourceReferences,
+        location_names: locationNames,
+        location_value: locationNames.join('/'),
         editorial_focus: normalizeWhitespace(parsedResponse.editorial_focus || ''),
         editorial_relevance: normalizeWhitespace(parsedResponse.editorial_relevance || ''),
         essential_facts: normalizeEditorialAspectList(parsedResponse.essential_facts, 8),
@@ -1285,6 +1320,8 @@ function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
         throw new Error('OpenAI-Antwort enthält keinen gültigen Bild-Alt-Text.');
     }
 
+    const locationNames = normalizeLocationNames(parsedResponse.location_names);
+
     return {
         title,
         excerpt: lead,
@@ -1298,8 +1335,47 @@ function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
         keyword_names: normalizeAiKeywordNames(parsedResponse.keyword_names),
         featured_image_prompt_en: featuredImagePrompt,
         featured_image_alt_text_de: featuredImageAltText,
-        source_references: []
+        source_references: [],
+        location_names: locationNames,
+        location_value: locationNames.join('/')
     };
+}
+
+function normalizeLocationNames(locationNames) {
+    if (!Array.isArray(locationNames)) {
+        return [];
+    }
+
+    const normalizedNames = [];
+    const seenNames = new Set();
+
+    for (const locationName of locationNames) {
+        const normalizedName = truncateToLength(
+            normalizeWhitespace(locationName).replace(/\s*\/\s*/g, ' '),
+            80
+        );
+        const comparisonName = normalizedName.toLocaleLowerCase('de-CH');
+
+        if (!normalizedName || seenNames.has(comparisonName)) {
+            continue;
+        }
+
+        seenNames.add(comparisonName);
+        normalizedNames.push(normalizedName);
+    }
+
+    return normalizedNames.slice(0, 12);
+}
+
+function removeSourceSectionFromContentHtml(contentHtml) {
+    const sourceHeadingPattern = /<(?:p|h[1-6])\b[^>]*>\s*(?:<[^>]+>\s*)*(?:Quellen|Sources)\b/i;
+    const sourceHeadingMatch = sourceHeadingPattern.exec(String(contentHtml || ''));
+
+    if (!sourceHeadingMatch) {
+        return contentHtml;
+    }
+
+    return String(contentHtml).slice(0, sourceHeadingMatch.index).trim();
 }
 
 function buildOriginalArticleTextFromSource({ sourceText, title, lead }) {

@@ -6,15 +6,19 @@ const {
     wordpressDefaultCategoryIds,
     wordpressAcfLeadFieldName,
     wordpressAcfBestCategoryFieldName,
-    wordpressAcfMidjourneyPromptFieldName
+    wordpressAcfMidjourneyPromptFieldName,
+    wordpressAcfSourcesFieldName,
+    wordpressAcfEmailTextFieldName,
+    wordpressAcfLocationFieldName
 } = require('../config/environment');
 
 const {
     normalizeWhitespace,
-    sanitizeSlug
+    sanitizeSlug,
+    escapeHtml
 } = require('../utils/textUtils');
 
-async function createWordPressDraft(rewrittenPost) {
+async function createWordPressDraft(rewrittenPost, originalMail = {}) {
     const authorizationHeader = Buffer
         .from(`${wordpressUsername}:${wordpressApplicationPassword}`)
         .toString('base64');
@@ -112,6 +116,29 @@ async function createWordPressDraft(rewrittenPost) {
         }
     }
 
+    const additionalAcfFields = {
+        [wordpressAcfSourcesFieldName]: buildSourceReferencesHtml(rewrittenPost.source_references),
+        [wordpressAcfEmailTextFieldName]: buildEmailTextHtml(originalMail),
+        [wordpressAcfLocationFieldName]: normalizeWhitespace(rewrittenPost.location_value || '')
+    };
+
+    for (const [fieldName, fieldValue] of Object.entries(additionalAcfFields)) {
+        if (!fieldName) {
+            continue;
+        }
+
+        const acfUpdateSucceeded = await updateWordPressAcfField({
+            postId: createdPost.id,
+            fieldName,
+            fieldValue,
+            authorizationHeader
+        });
+
+        if (!acfUpdateSucceeded) {
+            throw new Error(`Der WordPress-Beitrag wurde erstellt, aber das ACF-Feld "${fieldName}" konnte nicht gesetzt werden.`);
+        }
+    }
+
     let featuredImageResult = null;
 
     if (rewrittenPost.generated_featured_image) {
@@ -128,6 +155,55 @@ async function createWordPressDraft(rewrittenPost) {
         featured_image_media_id: featuredImageResult?.mediaId || null,
         featured_image_url: featuredImageResult?.sourceUrl || null
     };
+}
+
+function buildSourceReferencesHtml(sourceReferences) {
+    if (!Array.isArray(sourceReferences) || sourceReferences.length === 0) {
+        return '';
+    }
+
+    const listItems = sourceReferences.map((sourceReference) => {
+        const title = escapeHtml(sourceReference.title || sourceReference.url || 'Quelle');
+        const url = escapeHtml(sourceReference.url || '');
+        const usedFor = escapeHtml(sourceReference.used_for || '');
+        const description = usedFor ? `<br><small>${usedFor}</small>` : '';
+        return `<li><a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>${description}</li>`;
+    });
+
+    return `<ul>\n${listItems.join('\n')}\n</ul>`;
+}
+
+function buildEmailTextHtml({ subject = '', htmlBody = '', textBody = '' } = {}) {
+    const bodyText = emailBodyToPlainText(htmlBody || textBody);
+    const formattedBody = escapeHtml(bodyText).replace(/\n/g, '<br>');
+
+    return [
+        `<p><strong>Betreff</strong><br>${escapeHtml(subject)}</p>`,
+        '<hr>',
+        `<div>${formattedBody}</div>`
+    ].join('\n');
+}
+
+function emailBodyToPlainText(value) {
+    return String(value || '')
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&amp;/gi, '&')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'")
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .split('\n')
+        .map((line) => line.replace(/\s+/g, ' ').trim())
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
 }
 
 async function ensureWordPressTagIds(tagNames, authorizationHeader) {

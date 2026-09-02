@@ -130,7 +130,11 @@ app.http('processOriginalMailToWordPress', {
             const createdWordPressPost = await runLoggedStep(
             'wordpress_create_draft',
             logger,
-            () => createWordPressDraft(originalPost),
+            () => createWordPressDraft(originalPost, {
+                subject: String(requestBody.subject || ''),
+                htmlBody: String(requestBody.html_body || ''),
+                textBody: String(requestBody.text_body || '')
+            }),
             {
                 post_title_length: String(originalPost.title || '').length,
                 category_count: Array.isArray(originalPost.category_ids) ? originalPost.category_ids.length : 0,

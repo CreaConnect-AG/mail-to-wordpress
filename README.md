@@ -126,6 +126,24 @@ Default field name:
 midjourney_prompt_en
 ```
 
+## Additional ACF fields
+
+Both processing flows also store the following values:
+
+- `quellen_automate`: web sources used for the rewritten article, formatted as an HTML list. Sources are no longer included in the article content.
+- `email_text`: the original email subject and a safe, readable version of its body.
+- `ort`: relevant geographic values. Swiss places are stored as cantons, international capitals as capitals, and other international places as countries. Multiple values are separated with `/`.
+
+The field names can be configured with:
+
+```text
+WORDPRESS_ACF_SOURCES_FIELD_NAME=quellen_automate
+WORDPRESS_ACF_EMAIL_TEXT_FIELD_NAME=email_text
+WORDPRESS_ACF_LOCATION_FIELD_NAME=ort
+```
+
+Power Automate does not need additional request fields. It must continue to send the complete `subject` and `html_body`; do not use the shortened `bodyPreview` value.
+
 ## Power Automate mail flow
 
 Power Automate is responsible for receiving emails from the shared mailbox and sending a JSON request to the Azure Function.
@@ -407,6 +425,9 @@ Custom settings used by this project:
 - `WORDPRESS_ACF_LEAD_FIELD_NAME`
 - `WORDPRESS_ACF_BEST_CATEGORY_FIELD_NAME`
 - `WORDPRESS_ACF_MIDJOURNEY_PROMPT_FIELD_NAME`
+- `WORDPRESS_ACF_SOURCES_FIELD_NAME`
+- `WORDPRESS_ACF_EMAIL_TEXT_FIELD_NAME`
+- `WORDPRESS_ACF_LOCATION_FIELD_NAME`
 
 Do not replace Azure-managed settings like:
 
@@ -639,6 +660,18 @@ The prompt is generated in English, uses a realistic style, is intended for a 2:
 ```text
 --ar 2:1 --q 2 --no logos, text, cartoon
 ```
+
+### `WORDPRESS_ACF_SOURCES_FIELD_NAME`
+
+ACF field for the separately formatted source list. Default: `quellen_automate`.
+
+### `WORDPRESS_ACF_EMAIL_TEXT_FIELD_NAME`
+
+ACF field for the original subject and email body. Default: `email_text`.
+
+### `WORDPRESS_ACF_LOCATION_FIELD_NAME`
+
+ACF field for the normalized geographic value. Default: `ort`.
 
 ## Azure test
 
