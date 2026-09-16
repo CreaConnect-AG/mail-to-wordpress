@@ -5,6 +5,7 @@ const {
     wordpressDefaultStatus,
     wordpressDefaultCategoryIds,
     wordpressAcfLeadFieldName,
+    wordpressAcfSummaryFieldName,
     wordpressAcfBestCategoryFieldName,
     wordpressAcfMidjourneyPromptFieldName,
     wordpressAcfSourcesFieldName,
@@ -18,7 +19,11 @@ const {
     escapeHtml
 } = require('../utils/textUtils');
 
+const { buildSummaryHtml } = require('../utils/summaryUtils');
+
 async function createWordPressDraft(rewrittenPost, originalMail = {}) {
+    // Validate before creating tags or posts to avoid writes with an invalid summary.
+    const summaryHtml = buildSummaryHtml(rewrittenPost.summary_points);
     const authorizationHeader = Buffer
         .from(`${wordpressUsername}:${wordpressApplicationPassword}`)
         .toString('base64');
@@ -117,6 +122,7 @@ async function createWordPressDraft(rewrittenPost, originalMail = {}) {
     }
 
     const additionalAcfFields = {
+        [wordpressAcfSummaryFieldName]: summaryHtml,
         [wordpressAcfSourcesFieldName]: buildSourceReferencesHtml(rewrittenPost.source_references),
         [wordpressAcfEmailTextFieldName]: buildEmailTextHtml(originalMail),
         [wordpressAcfLocationFieldName]: normalizeWhitespace(rewrittenPost.location_value || '')

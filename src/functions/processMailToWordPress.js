@@ -160,6 +160,7 @@ app.http('processMailToWordPress', {
                     wordpress_link: createdWordPressPost.link || null,
                     wordpress_title: createdWordPressPost.title?.rendered || rewrittenPost.title,
                     lead_value: rewrittenPost.lead,
+                    summary_points: rewrittenPost.summary_points,
                     strict_rules_used: shouldUseStrictLengthRules(sourceText),
                     assigned_category_ids: rewrittenPost.category_ids || [],
                     assigned_category_titles: rewrittenPost.selected_category_titles || [],

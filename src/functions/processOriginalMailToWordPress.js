@@ -156,6 +156,7 @@ app.http('processOriginalMailToWordPress', {
                     wordpress_link: createdWordPressPost.link || null,
                     wordpress_title: createdWordPressPost.title?.rendered || originalPost.title,
                     lead_value: originalPost.lead,
+                    summary_points: originalPost.summary_points,
                     original_content_used: true,
                     assigned_category_ids: originalPost.category_ids || [],
                     assigned_category_titles: originalPost.selected_category_titles || [],

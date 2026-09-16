@@ -52,6 +52,7 @@ const {
 } = require('./keywordService');
 
 const midjourneyPromptEnding = '--ar 2:1 --q 2 --no logos, text, cartoon';
+const { summaryInstruction, buildSummarySchema, normalizeSummaryPoints } = require('../utils/summaryUtils');
 
 async function rewriteMailWithOpenAi({ subject, from, sourceText, additionalInstructions = '' }) {
     const useStrictLengthRules = shouldUseStrictLengthRules(sourceText);
@@ -368,6 +369,7 @@ function buildDeveloperInstruction({
     const currentDateText = getCurrentSwissDateText();
 
     const instructionSections = [
+        summaryInstruction,
         `# Rolle und Ziel
         Du bist Redaktor für immo!nvest, eine Schweizer Fachplattform für Immobilien, Bau, Standortentwicklung, Technologie, Nachhaltigkeit und Wirtschaft.
         Der fertige Beitrag muss wie ein kompakter redaktioneller Fachartikel wirken.
@@ -912,6 +914,7 @@ function buildResponseSchema({ useStrictLengthRules }) {
         maxLength: 80
       },
       content_html: contentHtmlSchema,
+      summary_points: buildSummarySchema(),
       selected_category_keys: {
         type: 'array',
         items: {
@@ -1033,6 +1036,7 @@ function buildResponseSchema({ useStrictLengthRules }) {
       'excerpt',
       'slug',
       'content_html',
+      'summary_points',
       'selected_category_keys',
       'best_category_key',
       'midjourney_prompt_en',
@@ -1055,13 +1059,15 @@ function buildOriginalMailDeveloperInstruction() {
     const instructionParts = [
         'Du bist Redaktor für eine professionelle Schweizer Immobilien-Website.',
         'Deine Aufgabe ist nicht, den Beitrag umzuschreiben.',
-        'Erkenne nur den Originaltitel, den Originallead, passende Kategorien, passende Stichwörter und einen Bildprompt.',
+        'Erkenne den Originaltitel, den Originallead, passende Kategorien, passende Stichwörter und einen Bildprompt. Erstelle ausserdem eine separate Zusammenfassung.',
+        summaryInstruction,
+        'Die Zusammenfassung darf neu formuliert werden. Sie basiert ausschliesslich auf dem Originalartikel in source_text einschliesslich Titel und Lead, ohne Mail-Signaturen oder technische Hinweise.',
         'Gib keinen vollständigen Beitragstext zurück.',
         'Der eigentliche Beitragstext wird vom System direkt aus der Original-Mail übernommen.',
         'title muss exakt dem erkannten Titel aus subject oder source_text entsprechen.',
         'lead muss exakt einem passenden Lead oder Kurzbeschrieb aus source_text entsprechen.',
         'Ändere beim Titel und Lead keine Wörter, keine Zahlen, keine Satzzeichen und keine Reihenfolge.',
-        'Korrigiere keine Rechtschreibung und formuliere nichts schöner.',
+        'Korrigiere im Originaltitel und Originallead keine Rechtschreibung und formuliere dort nichts schöner.',
         'Erfinde keine Informationen und ergänze keinen neuen Inhalt.',
         'Bestimme zusätzlich location_names nach diesen Regeln. Bei einem Schweizer Ort gib den zugehörigen Kanton auf Deutsch aus. Bei einer internationalen Hauptstadt gib nur die Hauptstadt aus. Bei einem anderen internationalen Ort gib nur das Land auf Deutsch aus. Mehrere relevante Werte sind separate Array-Einträge. Entferne Duplikate, ignoriere beiläufige Orte und verwende keine Schrägstriche innerhalb eines Eintrags.',
         'Falls die E-Mail keinen klaren separaten Lead enthält, verwende den ersten sinnvollen Absatz nach dem Titel als lead.',
@@ -1102,6 +1108,7 @@ function buildOriginalMailResponseSchema() {
     return {
         type: 'object',
         properties: {
+            summary_points: buildSummarySchema(),
             title: {
                 type: 'string',
                 minLength: 2,
@@ -1164,6 +1171,7 @@ function buildOriginalMailResponseSchema() {
         required: [
             'title',
             'lead',
+            'summary_points',
             'selected_category_keys',
             'best_category_key',
             'keyword_names',
@@ -1240,6 +1248,7 @@ function normalizeGeneratedPost(parsedResponse, useStrictLengthRules) {
         title,
         excerpt,
         lead: excerpt,
+        summary_points: normalizeSummaryPoints(parsedResponse.summary_points),
         slug: sanitizeSlug(parsedResponse.slug || title),
         content_html: contentHtml,
         content_text: contentText,
@@ -1325,6 +1334,7 @@ function normalizeOriginalMailPost({ parsedResponse, subject, sourceText }) {
     return {
         title,
         excerpt: lead,
+        summary_points: normalizeSummaryPoints(parsedResponse.summary_points),
         lead,
         slug: sanitizeSlug(title),
         content_html: buildOriginalContentHtml(contentText),

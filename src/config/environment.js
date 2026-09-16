@@ -26,6 +26,7 @@ const wordpressApplicationPassword = String(process.env.WORDPRESS_APPLICATION_PA
 const wordpressDefaultStatus = process.env.WORDPRESS_DEFAULT_STATUS || 'draft';
 const wordpressDefaultCategoryIds = parseIntegerList(process.env.WORDPRESS_DEFAULT_CATEGORY_IDS || '');
 const wordpressAcfLeadFieldName = process.env.WORDPRESS_ACF_LEAD_FIELD_NAME || 'lead';
+const wordpressAcfSummaryFieldName = process.env.WORDPRESS_ACF_SUMMARY_FIELD_NAME || 'zusammenfassung';
 const wordpressAcfBestCategoryFieldName = process.env.WORDPRESS_ACF_BEST_CATEGORY_FIELD_NAME || 'best_cat';
 const wordpressAcfMidjourneyPromptFieldName = process.env.WORDPRESS_ACF_MIDJOURNEY_PROMPT_FIELD_NAME || 'midjourney_prompt_en';
 const wordpressAcfSourcesFieldName = process.env.WORDPRESS_ACF_SOURCES_FIELD_NAME || 'quellen_automate';
@@ -52,6 +53,7 @@ module.exports = {
     wordpressDefaultStatus,
     wordpressDefaultCategoryIds,
     wordpressAcfLeadFieldName,
+    wordpressAcfSummaryFieldName,
     wordpressAcfBestCategoryFieldName,
     wordpressAcfMidjourneyPromptFieldName,
     wordpressAcfSourcesFieldName,

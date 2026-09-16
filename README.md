@@ -29,7 +29,7 @@ Main steps:
 6. OpenAI performs the editorial rewrite and, when enabled, web research.
 7. The result is validated and enriched with resolved categories, tags, and a Midjourney prompt.
 8. A WordPress draft is created.
-9. ACF fields for lead, best category, and Midjourney prompt are stored.
+9. ACF fields for lead, summary, best category, and Midjourney prompt are stored.
 10. A featured image can optionally be generated and assigned.
 
 ### Original-mail flow
@@ -42,7 +42,7 @@ Route:
 
 This flow keeps the original title, lead, and article text from the email.
 
-OpenAI is used only to detect the original title, lead, article text, categories, tags, featured image prompt, and Midjourney prompt. The article text is not rewritten.
+OpenAI detects the original title and lead, assigns categories and tags, and generates image prompts and a separate short summary. The article text is taken directly from the email and is not rewritten.
 
 At the moment, `additional_instructions` are used by the rewrite flow only.
 
@@ -98,6 +98,24 @@ Rules:
 - If the instruction requests a specific mention, angle, or explanation, the prompt tells OpenAI to integrate it naturally into `content_html` where allowed.
 - Instructions are not treated as verified facts unless supported by the email input or web research.
 
+## Short article summary (Zusammenfassung)
+
+Both flows generate `summary_points` in the existing OpenAI request, without a separate API call:
+
+- Prefer 2–4 short, factual bullet points; minimum 1, maximum 5.
+- Use one point for very short news with a single key fact; five only when a longer article warrants it.
+- Each point is one short sentence, preferably at most 25 words and no more than 240 characters.
+- Summarize only the most important facts from the finished article, including its title and lead. Preserve qualifications such as planned or expected; do not invent facts.
+- Use Swiss Standard German, without advertising, repetitions or an introduction.
+
+The application validates the points and safely converts them into an HTML list (`<ul><li>…</li></ul>`) for the ACF **WYSIWYG Editor** field `zusammenfassung`. The full article and lead remain separate. Invalid or missing summaries stop processing before WordPress writes. Both endpoint responses include `created_post.summary_points`.
+
+The default field name already matches `zusammenfassung`; no new Power Automate request fields or mandatory environment variables are needed. To override the name, set `WORDPRESS_ACF_SUMMARY_FIELD_NAME`.
+
+In WordPress, the field group containing `zusammenfassung` must apply to posts and have **Show in REST API** enabled. See [ACF REST API integration](https://www.advancedcustomfields.com/resources/wp-rest-api-integration/). Displaying the saved field on the website is handled by your WordPress template.
+
+After deploying, test each route with an email and inspect the draft's Zusammenfassung field: it should show 1–5 actual bullets and the article should still contain the detailed text. Existing posts are not backfilled.
+
 ## Midjourney prompt
 
 Both processing flows generate a dedicated Midjourney prompt in addition to the normal featured image prompt.
@@ -130,6 +148,7 @@ midjourney_prompt_en
 
 Both processing flows also store the following values:
 
+- `zusammenfassung`: the short article summary, formatted as an HTML bullet list.
 - `quellen_automate`: web sources used for the rewritten article, formatted as an HTML list. Sources are no longer included in the article content.
 - `email_text`: the original email subject and a safe, readable version of its body.
 - `ort`: relevant geographic values. Swiss places are stored as cantons, international capitals as capitals, and other international places as countries. Multiple values are separated with `/`.
@@ -138,6 +157,7 @@ The field names can be configured with:
 
 ```text
 WORDPRESS_ACF_SOURCES_FIELD_NAME=quellen_automate
+WORDPRESS_ACF_SUMMARY_FIELD_NAME=zusammenfassung
 WORDPRESS_ACF_EMAIL_TEXT_FIELD_NAME=email_text
 WORDPRESS_ACF_LOCATION_FIELD_NAME=ort
 ```
@@ -379,7 +399,7 @@ Azure URL:
 https://mail-to-wordpress.azurewebsites.net/api/process-original-mail-to-wordpress?code=YOUR_FUNCTION_KEY
 ```
 
-This flow keeps the original title, lead, and article text from the email. OpenAI is only used to detect the original title, lead, article text, categories, tags, the featured image prompt, and the Midjourney prompt.
+This flow keeps the original title, lead, and article text from the email. OpenAI detects the original title and lead, assigns categories and tags, and generates image prompts and a separate short summary.
 
 ## Azure deploy
 
@@ -423,6 +443,7 @@ Custom settings used by this project:
 - `WORDPRESS_DEFAULT_STATUS`
 - `WORDPRESS_DEFAULT_CATEGORY_IDS`
 - `WORDPRESS_ACF_LEAD_FIELD_NAME`
+- `WORDPRESS_ACF_SUMMARY_FIELD_NAME`
 - `WORDPRESS_ACF_BEST_CATEGORY_FIELD_NAME`
 - `WORDPRESS_ACF_MIDJOURNEY_PROMPT_FIELD_NAME`
 - `WORDPRESS_ACF_SOURCES_FIELD_NAME`
@@ -635,6 +656,10 @@ Default:
 lead
 ```
 
+### `WORDPRESS_ACF_SUMMARY_FIELD_NAME`
+
+ACF WYSIWYG field for the generated HTML bullet summary. Default: `zusammenfassung`.
+
 ### `WORDPRESS_ACF_BEST_CATEGORY_FIELD_NAME`
 
 ACF field name used for the best matching category key selected by OpenAI.
@@ -714,6 +739,8 @@ curl -X POST "https://mail-to-wordpress.azurewebsites.net/api/process-original-m
 ```
 
 ## Testing checklist
+
+Run `npm test` (or `npm.cmd test` in PowerShell if script execution is disabled) for automated summary validation and mocked OpenAI-to-WordPress integration tests. These tests do not call live APIs or create posts.
 
 ### Without TXT attachment
 
