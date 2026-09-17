@@ -102,9 +102,10 @@ Rules:
 
 Both flows generate `summary_points` in the existing OpenAI request, without a separate API call:
 
-- Prefer 2–4 short, factual bullet points; minimum 1, maximum 5.
-- Use one point for very short news with a single key fact; five only when a longer article warrants it.
-- Each point is one short sentence, preferably at most 25 words and no more than 240 characters.
+- Prefer 2–3 short, factual bullet points; minimum 1, maximum 4.
+- Use one point for very short news with a single key fact; four only when there are enough important facts. Do not pad the list.
+- Each point contains one short sentence with one key fact. Aim for roughly 8–12 words, with a hard maximum of 100 characters including spaces and punctuation, enforced by the OpenAI schema and local validation.
+- Use direct, preferably active language without chained clauses or background details. Shorten by rephrasing, never by cutting off sentences or dropping necessary qualifications, names or figures.
 - Summarize only the most important facts from the finished article, including its title and lead. Preserve qualifications such as planned or expected; do not invent facts.
 - Use Swiss Standard German, without advertising, repetitions or an introduction.
 
@@ -114,7 +115,7 @@ The default field name already matches `zusammenfassung`; no new Power Automate 
 
 In WordPress, the field group containing `zusammenfassung` must apply to posts and have **Show in REST API** enabled. See [ACF REST API integration](https://www.advancedcustomfields.com/resources/wp-rest-api-integration/). Displaying the saved field on the website is handled by your WordPress template.
 
-After deploying, test each route with an email and inspect the draft's Zusammenfassung field: it should show 1–5 actual bullets and the article should still contain the detailed text. Existing posts are not backfilled.
+After deploying, test each route with an email and inspect the draft's Zusammenfassung field: it should show 1–4 actual bullets of at most 100 characters each and the article should still contain the detailed text. Existing posts are not backfilled.
 
 ## Midjourney prompt
 
